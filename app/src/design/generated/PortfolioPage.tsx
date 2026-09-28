@@ -325,7 +325,7 @@ export function PortfolioPage({ vm }: { vm: V }) {
                                 {" "}
                                 <div style={sx("min-width:1020px")}>
                                   {" "}
-                                  <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 184px;gap:12px;align-items:center;height:32px;padding:0 14px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--l)")}>
+                                  <div style={sx("display:grid;grid-template-columns:minmax(150px,1.3fr) repeat(5,minmax(72px,1fr)) minmax(104px,1.1fr) minmax(124px,1.1fr) 184px;gap:12px;align-items:center;height:32px;padding:0 14px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--l)")}>
                                     <span>
                                       Market
                                     </span>
@@ -358,7 +358,7 @@ export function PortfolioPage({ vm }: { vm: V }) {
                                     return (
                                       <Fragment key={i17}>
                                           {" "}
-                                          <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 184px;gap:12px;align-items:center;min-height:calc(var(--rh) + 6px);padding:0 14px;border-bottom:1px solid var(--l);font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} className="zp5">
+                                          <div style={sx("display:grid;grid-template-columns:minmax(150px,1.3fr) repeat(5,minmax(72px,1fr)) minmax(104px,1.1fr) minmax(124px,1.1fr) 184px;gap:12px;align-items:center;min-height:calc(var(--rh) + 6px);padding:0 14px;border-bottom:1px solid var(--l);font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} className="zp5">
                                         {" "}
                                         <div onClick={r?.goto} style={sx("display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Instrument Sans',sans-serif")}>
                                           <span style={sx(`width:20px;height:20px;flex:none;border-radius:50%;object-fit:cover;background:var(--r);box-shadow:0 0 0 1px var(--l2);display:inline-block;background:var(--r) center/cover no-repeat;background-image:url(${r?.logo ?? ''})`)} />

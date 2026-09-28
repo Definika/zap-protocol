@@ -1,0 +1,7 @@
+**/node_modules
+target
+.data
+app/dist
+.git
+.anchor
+test-ledger

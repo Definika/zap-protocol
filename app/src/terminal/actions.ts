@@ -380,7 +380,7 @@ export function closeAll(c: C) {
               return closePosition(acc(c, m.index), await z.signedPrice(m.feedId), sideOf(p.side), p.pid, MAX, bound(c, p.market, p.side === 'short'));
             }),
           ),
-          600_000,
+          300_000,
         ),
       batch.length > 1 ? 'Positions closed' : 'Position closed',
       batch.map((p) => `${p.market} ${cap(p.side)}`).join(', '),
@@ -485,12 +485,13 @@ export function vault(c: C) {
   const s = c.state;
   const amount = c.num(s.vamt);
   const n = store.markets.size;
+  // keep the amount if the transaction fails, so it can be retried
+  const clear = (ok: boolean) => ok && c.setState({ vamt: '' });
   if (s.vtab === 'deposit') {
-    tx(c, 'Deposit to vault', async () => z.trade([lpDeposit(z.session!, z.owner!, n, await z.signedAll(), U6(amount))], 600_000), 'Deposited to vault', `${K.usd(amount)} for ≈ ${K.num(amount / K.VAULT.price)} shares`);
+    tx(c, 'Deposit to vault', async () => z.trade([lpDeposit(z.session!, z.owner!, n, await z.signedAll(), U6(amount))], 200_000), 'Deposited to vault', `${K.usd(amount)} for ≈ ${K.num(amount / K.VAULT.price)} shares`, clear);
   } else {
     const all = amount >= s.shares * K.VAULT.price * 0.999;
     const shares = all ? BigInt(store.account?.lpShares ?? '0') : U6(Math.min(s.shares, amount / K.VAULT.price));
-    tx(c, 'Withdraw from vault', async () => z.trade([lpWithdraw(z.session!, z.owner!, n, await z.signedAll(), shares)], 600_000), 'Withdrawn from vault', `≈ ${K.usd(amount)} to your trading balance`);
+    tx(c, 'Withdraw from vault', async () => z.trade([lpWithdraw(z.session!, z.owner!, n, await z.signedAll(), shares)], 200_000), 'Withdrawn from vault', `≈ ${K.usd(amount)} to your trading balance`, clear);
   }
-  c.setState({ vamt: '' });
 }

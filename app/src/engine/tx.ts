@@ -77,8 +77,11 @@ export interface SendResult {
   confirmed: Promise<void>;
 }
 
-/** Builds a relayer-paid v0 transaction, signs it, relays it and returns once the relayer accepted it. */
-export async function send(items: (TransactionInstruction | PricedIx)[], sign: Signer, computeUnitLimit = 300_000): Promise<SendResult> {
+/**
+ * Builds a relayer-paid v0 transaction, signs it, relays it and returns once the relayer accepted it. `token` is the
+ * user's login session (the relayer only co-signs for the user's own wallets and trading keys).
+ */
+export async function send(items: (TransactionInstruction | PricedIx)[], sign: Signer, computeUnitLimit = 300_000, token?: string | null): Promise<SendResult> {
   const relayer = store.config?.relayer as string | undefined;
   if (!relayer) throw new Error('relayer unavailable');
   const [{ blockhash, lastValidBlockHeight }, table] = await Promise.all([connection.getLatestBlockhash('confirmed'), lookupTable()]);
@@ -89,7 +92,7 @@ export async function send(items: (TransactionInstruction | PricedIx)[], sign: S
     lookupTables: table ? [table] : [],
   });
   const signed = await sign(tx);
-  const { signature } = await post<{ signature: string }>('/v1/relay', { tx: btoa(String.fromCharCode(...signed.serialize())) });
+  const { signature } = await post<{ signature: string }>('/v1/relay', { tx: btoa(String.fromCharCode(...signed.serialize())) }, token ?? undefined);
   const confirmed = connection
     .confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
     .then((r) => {

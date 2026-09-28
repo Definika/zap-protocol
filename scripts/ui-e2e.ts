@@ -94,7 +94,8 @@ await page.locator('button', { hasText: /^Edit$/ }).first().click();
 await page.waitForTimeout(500);
 await page.locator('button', { hasText: /^Close$/ }).last().click();
 await page.waitForTimeout(400);
-await click(page, '50%');
+// the dialog renders after the order form, so its 50% chip is the last one on the page
+await page.getByText('50%', { exact: true }).last().click();
 await click(page, 'Close 50%');
 await toast('Position reduced');
 await shot('reduced');

@@ -106,7 +106,7 @@ export function ZapProvider({ backend, children }: { backend: WalletBackend; chi
 
   const ownerSend = useCallback(
     async (items: Items) => {
-      const h = await send(items, (tx) => backend.signTransaction(tx));
+      const h = await send(items, (tx) => backend.signTransaction(tx), undefined, await backend.accessToken());
       await h.confirmed;
       return h.signature;
     },
@@ -151,7 +151,7 @@ export function ZapProvider({ backend, children }: { backend: WalletBackend; chi
       const expires = BigInt(sk.expiresAt);
       const items: Items = [store.account ? setSession(o, sk.publicKey, expires) : createAccount(o, relayer(), sk.publicKey, expires)];
       if (depositUsd > 0) items.push(deposit(o, ata(o, usdcMint()), usdcMint(), U6(depositUsd)));
-      const h = await send(items, (tx) => backend.signTransaction(tx));
+      const h = await send(items, (tx) => backend.signTransaction(tx), undefined, await backend.accessToken());
       onStep('Confirming…');
       await h.confirmed;
       setSessionKey(sk);
@@ -187,19 +187,19 @@ export function ZapProvider({ backend, children }: { backend: WalletBackend; chi
         setEnableOpen(true);
         throw new Error('Enable trading to continue');
       }
-      return send(items, (tx) => session.sign(tx), computeUnitLimit);
+      return send(items, (tx) => session.sign(tx), computeUnitLimit, await backend.accessToken());
     },
-    [session, tradingReady],
+    [backend, session, tradingReady],
   );
 
   const revokeSession = useCallback(async () => {
     const o = ownerRef.current;
     if (!o || !session) return;
-    const h = await send([revokeSessionIx(session.publicKey, o)], (tx) => session.sign(tx));
+    const h = await send([revokeSessionIx(session.publicKey, o)], (tx) => session.sign(tx), undefined, await backend.accessToken());
     await h.confirmed;
     await forgetSession(o.toBase58());
     setSessionKey(null);
-  }, [session]);
+  }, [backend, session]);
 
   const value = useMemo(
     () => ({
