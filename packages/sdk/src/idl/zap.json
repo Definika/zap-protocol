@@ -2582,6 +2582,17 @@
           {
             "name": "collateral_after",
             "type": "u64"
+          },
+          {
+            "name": "borrow_paid",
+            "docs": [
+              "Borrow fee and funding settled from the collateral first (funding: positive = paid, negative = received)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "funding_paid",
+            "type": "i64"
           }
         ]
       }

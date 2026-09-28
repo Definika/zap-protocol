@@ -2588,6 +2588,17 @@ export type Zap = {
           {
             "name": "collateralAfter",
             "type": "u64"
+          },
+          {
+            "name": "borrowPaid",
+            "docs": [
+              "Borrow fee and funding settled from the collateral first (funding: positive = paid, negative = received)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fundingPaid",
+            "type": "i64"
           }
         ]
       }

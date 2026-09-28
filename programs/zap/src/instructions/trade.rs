@@ -488,6 +488,8 @@ pub fn add_collateral(ctx: Context<TradeNoPrice>, side_: u8, position_id: u64, a
         position_id,
         delta: amount as i64,
         collateral_after: acct.positions[i].collateral,
+        borrow_paid: o.borrow,
+        funding_paid: o.funding as i64,
     });
     Ok(())
 }
@@ -526,6 +528,8 @@ pub fn remove_collateral(ctx: Context<TradeWithPrice>, price_msg: Vec<u8>, side_
         position_id,
         delta: -(amount as i64),
         collateral_after,
+        borrow_paid: o.borrow,
+        funding_paid: o.funding as i64,
     });
     Ok(())
 }

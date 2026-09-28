@@ -125,6 +125,9 @@ pub struct CollateralChanged {
     /// Positive: added from the balance; negative: removed to the balance.
     pub delta: i64,
     pub collateral_after: u64,
+    /// Borrow fee and funding settled from the collateral first (funding: positive = paid, negative = received).
+    pub borrow_paid: u64,
+    pub funding_paid: i64,
 }
 
 #[event]
