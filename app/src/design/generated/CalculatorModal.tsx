@@ -151,7 +151,7 @@ export function CalculatorModal({ vm }: { vm: V }) {
                 ) : null}
                 {" "}
                 <span style={sx("font-size:11px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                  Includes 0.06% open and close fees. Funding, borrow fees and price impact are not included.
+                  {"Includes "}{I(vm.ccFeePct)}{" open and close fees. Funding, borrow fees, spread and price impact are not included."}
                 </span>
                 {" "}
                 <button onClick={vm.ccUse} style={sx("height:42px;border-radius:7px;border:1px solid var(--l2);background:transparent;color:var(--t);font:600 13px 'Instrument Sans',sans-serif;cursor:pointer")} className="zpm">

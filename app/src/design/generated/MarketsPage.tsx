@@ -77,7 +77,7 @@ export function MarketsPage({ vm }: { vm: V }) {
                 {" "}
                 <div style={sx("background:var(--p);padding:14px 16px;display:flex;flex-direction:column;gap:6px")}>
                   <span style={sx("font-size:11.5px;color:var(--t3)")}>
-                    All-time volume
+                    24h volume
                   </span>
                   <span style={sx("display:flex;align-items:baseline;font:500 21px/1.15 'Geist',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;color:var(--t)")}>
                     {I(vm.mVolP?.sg)}

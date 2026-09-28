@@ -15,8 +15,13 @@ export function PhoneHeader({ vm }: { vm: V }) {
             </svg>
             {" "}
             <span style={sx("font:600 9.5px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--a);background:var(--at);padding:5px 6px;border-radius:4px")}>
-              DEVNET
+              {I(vm.clusterTag)}
             </span>
+            {vm.devOracle ? (
+              <span style={sx("font:600 9.5px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--am);background:var(--amt);padding:5px 6px;border-radius:4px")}>
+                DEV ORACLE
+              </span>
+            ) : null}
             {" "}
             <div style={sx("margin-left:auto;display:flex;align-items:center;gap:6px")}>
               {" "}
@@ -26,16 +31,6 @@ export function PhoneHeader({ vm }: { vm: V }) {
                   <button onClick={vm.toggleMenu} style={sx("white-space:nowrap;height:34px;display:flex;align-items:center;gap:7px;padding:0 10px 0 5px;border-radius:17px;background:var(--r);border:1px solid var(--l2);color:var(--t);font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer")}>
                     <span style={sx(`width:22px;height:22px;border-radius:50%;display:inline-block;background:var(--r) center/cover no-repeat;background-image:url(${vm.walletLogo ?? ''})`)} />
                     {I(vm.usdcShort)}
-                  </button>
-                  {" "}
-                </>
-              ) : null}
-              {" "}
-              {vm.disconnected ? (
-                <>
-                  {" "}
-                  <button onClick={vm.openWallet} style={sx("height:34px;padding:0 14px;border-radius:6px;background:var(--af);border:0;color:var(--ai);font:600 13px 'Instrument Sans',sans-serif;cursor:pointer")}>
-                    Connect wallet
                   </button>
                   {" "}
                 </>

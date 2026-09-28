@@ -125,16 +125,16 @@ export function TradePage({ vm }: { vm: V }) {
                           {" "}
                           <div style={sx("display:flex;flex-direction:column;gap:3px")}>
                             <span style={sx("font-size:11px;color:var(--t3)")}>
-                              Next funding
+                              Funding
                             </span>
                             <span style={sx("font:500 12.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums")}>
-                              {I(vm.fundCd)}
+                              Accrues every second
                             </span>
                           </div>
                           {" "}
                           <div style={sx("display:flex;flex-direction:column;gap:3px")}>
                             <span style={sx("font-size:11px;color:var(--t3)")}>
-                              Oracle
+                              {I(vm.oracleSrc)}
                             </span>
                             <span style={sx(`display:flex;align-items:center;gap:6px;font:500 12.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:${vm.oracleColor ?? ''}`)}>
                               {I(vm.oraclePulse)}{I(vm.oracleAge)}
@@ -251,14 +251,14 @@ export function TradePage({ vm }: { vm: V }) {
                             <span style={sx("font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums")}>
                               {I(vm.fundRate)}{" "}{I(vm.fundWho)}
                               <span style={sx("color:var(--t3)")}>
-                                {" · "}{I(vm.fundCd)}
+                                {" · continuous"}
                               </span>
                             </span>
                           </div>
                           {" "}
                           <div style={sx("display:flex;flex-direction:column;gap:3px")}>
                             <span style={sx("font-size:11px;color:var(--t3)")}>
-                              Oracle
+                              {I(vm.oracleSrc)}
                             </span>
                             <span style={sx(`font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:${vm.oracleColor ?? ''}`)}>
                               {I(vm.oracleAge)}
@@ -357,17 +357,6 @@ export function TradePage({ vm }: { vm: V }) {
                     </>
                   ) : null}
                   {" "}
-                  {vm.tvView ? (
-                    <>
-                      <span style={sx("margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--t3)")}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <circle cx="12" cy="12" r="9" />
-                          <path d="M12 11v5M12 8v.01" />
-                        </svg>
-                        Reference data. Orders fill at the Pyth price.
-                      </span>
-                    </>
-                  ) : null}
                   {" "}
                 </div>
                 {" "}
@@ -1071,17 +1060,6 @@ export function TradePage({ vm }: { vm: V }) {
                             </>
                           ) : null}
                           {" "}
-                          {vm.showPyth ? (
-                            <>
-                              <div style={sx("display:flex;gap:6px;align-items:center")}>
-                                <span style={sx("width:10px;height:2px;background:var(--a)")} />
-                                {"Pyth on-chain "}
-                                <span style={sx("color:var(--a)")}>
-                                  {I(vm.lgPyth)}
-                                </span>
-                              </div>
-                            </>
-                          ) : null}
                           {" "}
                         </div>
                         {" "}
@@ -1131,19 +1109,12 @@ export function TradePage({ vm }: { vm: V }) {
                                 No price points yet
                               </span>
                               <span style={sx("font-size:12.5px;color:var(--t3)")}>
-                                {"The chart fills in as Pyth publishes prices for "}{I(vm.mId)}{"."}
+                                {"The chart fills in as the oracle publishes prices for "}{I(vm.mId)}{"."}
                               </span>
                             </div>
                           </>
                         ) : null}
                         {" "}
-                        {vm.noSeries ? (
-                          <>
-                            <div style={sx("position:absolute;inset:0;display:grid;place-items:center;font-size:12.5px;color:var(--t3)")}>
-                              Turn on Pyth oracle or Reference candles
-                            </div>
-                          </>
-                        ) : null}
                         {" "}
                       </div>
                       {" "}
@@ -1331,37 +1302,6 @@ export function TradePage({ vm }: { vm: V }) {
                   </>
                 ) : null}
                 {" "}
-                {vm.tvView ? (
-                  <>
-                    {" "}
-                    <div style={sx("flex:1;min-height:0;display:flex;flex-direction:column")}>
-                      {" "}
-                      <div style={sx("flex:1;min-height:0;position:relative")}>
-                        {" "}
-                        <div style={sx("position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--t3);font-size:12.5px")}>
-                          <span style={sx("color:var(--a);display:flex")}>
-                            {I(vm.spinner)}
-                          </span>
-                          Loading TradingView…
-                        </div>
-                        {" "}
-                        <div ref={vm.tvRef} style={sx("position:absolute;inset:0;z-index:1")} />
-                        {" "}
-                      </div>
-                      {" "}
-                      <div style={sx("height:24px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;border-top:1px solid var(--l);font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden")}>
-                        <span>
-                          {I(vm.tvSrc)}
-                        </span>
-                        <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow" style={sx("color:var(--t3)")} className="zp1">
-                          Chart by TradingView
-                        </a>
-                      </div>
-                      {" "}
-                    </div>
-                    {" "}
-                  </>
-                ) : null}
                 {" "}
                 {vm.ctxOn ? (
                   <>
@@ -1732,31 +1672,6 @@ export function TradePage({ vm }: { vm: V }) {
                     {" "}
                   </div>
                   {" "}
-                  {vm.proOpen ? (
-                    <>
-                      {" "}
-                      <div style={sx("animation:kpop .16s ease-out;position:absolute;top:42px;left:8px;width:250px;z-index:25;max-height:min(430px,calc(100vh - 170px));overflow-y:auto;overscroll-behavior:contain;background:var(--p);border:1px solid var(--l2);border-radius:8px;box-shadow:var(--sh);padding:4px;display:flex;flex-direction:column;gap:2px")}>
-                        {" "}
-                        {(Array.isArray(vm.proItems) ? vm.proItems : []).map((o: any, i12: number) => {
-                          const $index = i12;
-                          return (
-                            <Fragment key={i12}>
-                                <button onClick={o?.on} style={sx(`display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:0;border-radius:5px;background:${o?.bg ?? ''};text-align:left;cursor:pointer`)} className="zp5">
-                              <span style={sx("font:600 12.5px 'Instrument Sans',sans-serif;color:var(--t)")}>
-                                {I(o?.label)}
-                              </span>
-                              <span style={sx("font-size:11.5px;line-height:1.4;color:var(--t3)")}>
-                                {I(o?.desc)}
-                              </span>
-                            </button>
-                            </Fragment>
-                          );
-                        })}
-                        {" "}
-                      </div>
-                      {" "}
-                    </>
-                  ) : null}
                   {" "}
                   {vm.settingsOpen ? (
                     <>
@@ -1820,35 +1735,6 @@ export function TradePage({ vm }: { vm: V }) {
                   {" "}
                   <div style={sx("flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:12px 14px 14px;display:flex;flex-direction:column;gap:14px")}>
                     {" "}
-                    <div style={sx("flex:none;display:flex;flex-direction:column;gap:6px")}>
-                      <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:8px")}>
-                        <span style={sx("font-size:12px;color:var(--t2)")}>
-                          Margin mode
-                        </span>
-                        <span style={sx("font:500 11px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:var(--t3)")}>
-                          {I(vm.mmLiqHint)}
-                        </span>
-                      </div>
-                      <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;background:var(--in);border-radius:7px")}>
-                        {(Array.isArray(vm.mmSeg) ? vm.mmSeg : []).map((o: any, i12: number) => {
-                          const $index = i12;
-                          return (
-                            <Fragment key={i12}>
-                                <button onClick={o?.on} title={o?.tip} style={sx(`height:32px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:5px;border:0;background:${o?.bg ?? ''};color:${o?.color ?? ''};box-shadow:${o?.sh ?? ''};font:600 12.5px 'Instrument Sans',sans-serif;cursor:${o?.cur ?? ''};opacity:${o?.op ?? ''};transition:background .15s,color .15s`)} className="zp1">
-                              {o?.lock ? (
-                                <>
-                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                                    <path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3" />
-                                  </svg>
-                                </>
-                              ) : null}
-                              {I(o?.label)}
-                            </button>
-                            </Fragment>
-                          );
-                        })}
-                      </div>
-                    </div>
                     {" "}
                     {vm.tgl ? (
                       <>
@@ -1905,7 +1791,7 @@ export function TradePage({ vm }: { vm: V }) {
                           {" "}
                           <label style={sx("height:42px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 6px 0 12px;background:var(--in);border:1px solid var(--l2);border-radius:6px")}>
                             {" "}
-                            <input value={vm.px ?? ''} onChange={vm.onPx} placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 16px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
+                            <input value={vm.px ?? ''} onChange={vm.onPx} aria-label="Order price" placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 16px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
                             {" "}
                             <button onClick={vm.pxBid} title="Best bid" style={sx("height:28px;padding:0 7px;border-radius:5px;border:1px solid var(--l2);background:var(--r);color:var(--t2);font:500 11.5px 'Instrument Sans',sans-serif;cursor:pointer;transition:color .15s,border-color .15s")} className="zpe">
                               Bid
@@ -1951,210 +1837,11 @@ export function TradePage({ vm }: { vm: V }) {
                       </>
                     ) : null}
                     {" "}
-                    {vm.isTwap ? (
-                      <>
-                        {" "}
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          {" "}
-                          <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:8px")}>
-                            <span style={sx("font-size:12px;color:var(--t2)")}>
-                              Duration
-                            </span>
-                            <span style={sx("font:500 11.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:var(--t3)")}>
-                              {I(vm.twInfo)}
-                            </span>
-                          </div>
-                          {" "}
-                          <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:6px")}>
-                            {(Array.isArray(vm.twChips) ? vm.twChips : []).map((c: any, i14: number) => {
-                              const $index = i14;
-                              return (
-                                <Fragment key={i14}>
-                                    <button onClick={c?.on} style={sx(`height:30px;border-radius:5px;background:${c?.bg ?? ''};border:1px solid ${c?.bd ?? ''};color:${c?.color ?? ''};font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer`)} className="zpf">
-                                  {I(c?.label)}
-                                </button>
-                                </Fragment>
-                              );
-                            })}
-                          </div>
-                          {" "}
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.twHelp)}
-                          </span>
-                          {" "}
-                        </div>
-                        {" "}
-                      </>
-                    ) : null}
                     {" "}
-                    {vm.isScale ? (
-                      <>
-                        {" "}
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          {" "}
-                          <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
-                            {" "}
-                            <label style={sx("display:flex;flex-direction:column;gap:5px")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                Start price
-                              </span>
-                              <input value={vm.scFrom ?? ''} onChange={vm.onScFrom} placeholder="0.00" inputMode="decimal" style={sx("height:38px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
-                            </label>
-                            {" "}
-                            <label style={sx("display:flex;flex-direction:column;gap:5px")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                End price
-                              </span>
-                              <input value={vm.scTo ?? ''} onChange={vm.onScTo} placeholder="0.00" inputMode="decimal" style={sx("height:38px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
-                            </label>
-                            {" "}
-                          </div>
-                          {" "}
-                          <div style={sx("display:flex;justify-content:space-between;align-items:center;gap:8px")}>
-                            <span style={sx("font-size:12px;color:var(--t2)")}>
-                              Orders
-                            </span>
-                            <div style={sx("display:flex;gap:2px;padding:2px;background:var(--in);border-radius:5px")}>
-                              {(Array.isArray(vm.scChips) ? vm.scChips : []).map((o: any, i15: number) => {
-                                const $index = i15;
-                                return (
-                                  <Fragment key={i15}>
-                                      <button onClick={o?.on} title={o?.tip} style={sx(`height:22px;padding:0 8px;border-radius:3px;border:0;background:${o?.bg ?? ''};color:${o?.color ?? ''};box-shadow:${o?.sh ?? ''};font:500 11.5px 'Instrument Sans',sans-serif;cursor:pointer;white-space:nowrap`)} className="zp1">
-                                    {I(o?.label)}
-                                  </button>
-                                  </Fragment>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          {" "}
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.scHelp)}
-                          </span>
-                          {" "}
-                        </div>
-                        {" "}
-                      </>
-                    ) : null}
                     {" "}
-                    {vm.isTrail ? (
-                      <>
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:8px")}>
-                            <span style={sx("font-size:12px;color:var(--t2)")}>
-                              Callback rate
-                            </span>
-                            <span style={sx("font:500 11.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:var(--t3)")}>
-                              {I(vm.trInfo)}
-                            </span>
-                          </div>
-                          <div style={sx("display:grid;grid-template-columns:repeat(4,1fr);gap:6px")}>
-                            {(Array.isArray(vm.trChips) ? vm.trChips : []).map((c: any, i14: number) => {
-                              const $index = i14;
-                              return (
-                                <Fragment key={i14}>
-                                    <button onClick={c?.on} style={sx(`height:30px;border-radius:5px;background:${c?.bg ?? ''};border:1px solid ${c?.bd ?? ''};color:${c?.color ?? ''};font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer`)} className="zpf">
-                                  {I(c?.label)}
-                                </button>
-                                </Fragment>
-                              );
-                            })}
-                          </div>
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.trHelp)}
-                          </span>
-                        </div>
-                      </>
-                    ) : null}
                     {" "}
-                    {vm.isOco ? (
-                      <>
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
-                            <label style={sx("display:flex;flex-direction:column;gap:5px;min-width:0")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                Take-profit limit
-                              </span>
-                              <input value={vm.ocoTp ?? ''} onChange={vm.onOcoTp} placeholder="0.00" inputMode="decimal" style={sx("height:38px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
-                            </label>
-                            <label style={sx("display:flex;flex-direction:column;gap:5px;min-width:0")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                Stop trigger
-                              </span>
-                              <input value={vm.ocoSl ?? ''} onChange={vm.onOcoSl} placeholder="0.00" inputMode="decimal" style={sx("height:38px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
-                            </label>
-                          </div>
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.ocoHelp)}
-                          </span>
-                        </div>
-                      </>
-                    ) : null}
                     {" "}
-                    {vm.isChase ? (
-                      <>
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          <div style={sx("display:flex;justify-content:space-between;align-items:baseline;gap:8px")}>
-                            <span style={sx("font-size:12px;color:var(--t2)")}>
-                              Max chase distance
-                            </span>
-                            <span style={sx("font:500 11.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;color:var(--t3)")}>
-                              {I(vm.chInfo)}
-                            </span>
-                          </div>
-                          <div style={sx("display:grid;grid-template-columns:repeat(3,1fr);gap:6px")}>
-                            {(Array.isArray(vm.chChips) ? vm.chChips : []).map((c: any, i14: number) => {
-                              const $index = i14;
-                              return (
-                                <Fragment key={i14}>
-                                    <button onClick={c?.on} style={sx(`height:30px;border-radius:5px;background:${c?.bg ?? ''};border:1px solid ${c?.bd ?? ''};color:${c?.color ?? ''};font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer`)} className="zpf">
-                                  {I(c?.label)}
-                                </button>
-                                </Fragment>
-                              );
-                            })}
-                          </div>
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.chHelp)}
-                          </span>
-                        </div>
-                      </>
-                    ) : null}
                     {" "}
-                    {vm.isIce ? (
-                      <>
-                        <div style={sx("display:flex;flex-direction:column;gap:8px")}>
-                          <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
-                            <label style={sx("display:flex;flex-direction:column;gap:5px;min-width:0")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                Limit price
-                              </span>
-                              <input value={vm.icePx ?? ''} onChange={vm.onIcePx} placeholder="0.00" inputMode="decimal" style={sx("height:38px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13.5px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
-                            </label>
-                            <div style={sx("display:flex;flex-direction:column;gap:5px")}>
-                              <span style={sx("font-size:11px;color:var(--t3)")}>
-                                Slices
-                              </span>
-                              <div style={sx("display:grid;grid-template-columns:repeat(3,1fr);gap:6px")}>
-                                {(Array.isArray(vm.iceChips) ? vm.iceChips : []).map((c: any, i16: number) => {
-                                  const $index = i16;
-                                  return (
-                                    <Fragment key={i16}>
-                                        <button onClick={c?.on} style={sx(`height:38px;border-radius:5px;background:${c?.bg ?? ''};border:1px solid ${c?.bd ?? ''};color:${c?.color ?? ''};font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer`)} className="zpf">
-                                      {I(c?.label)}
-                                    </button>
-                                    </Fragment>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                          <span style={sx("font-size:11.5px;line-height:1.45;color:var(--t3);text-wrap:pretty")}>
-                            {I(vm.iceHelp)}
-                          </span>
-                        </div>
-                      </>
-                    ) : null}
                     {" "}
                     <div style={sx("display:flex;flex-direction:column;gap:10px")}>
                       {" "}
@@ -2272,7 +1959,7 @@ export function TradePage({ vm }: { vm: V }) {
                       {" "}
                       <label style={sx("height:42px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--in);border:1px solid var(--l2);border-radius:6px")}>
                         {" "}
-                        <input value={vm.amtVal ?? ''} onChange={vm.onAmt} placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 16px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
+                        <input value={vm.amtVal ?? ''} onChange={vm.onAmt} aria-label="Order amount" placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 16px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
                         {" "}
                         <span style={sx("display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)")}>
                           <span style={sx(`width:16px;height:16px;border-radius:50%;background:var(--r) center/cover no-repeat;background-image:url(${vm.amtLogo ?? ''})`)} />
@@ -2359,14 +2046,14 @@ export function TradePage({ vm }: { vm: V }) {
                             <span style={sx("font-size:11px;color:var(--t3)")}>
                               Take profit
                             </span>
-                            <input value={vm.tp ?? ''} onChange={vm.onTp} inputMode="decimal" style={sx("height:36px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
+                            <input value={vm.tp ?? ''} onChange={vm.onTp} aria-label="Take profit price" inputMode="decimal" style={sx("height:36px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
                           </label>
                           {" "}
                           <label style={sx("display:flex;flex-direction:column;gap:5px")}>
                             <span style={sx("font-size:11px;color:var(--t3)")}>
                               Stop loss
                             </span>
-                            <input value={vm.sl ?? ''} onChange={vm.onSl} inputMode="decimal" style={sx("height:36px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
+                            <input value={vm.sl ?? ''} onChange={vm.onSl} aria-label="Stop loss price" inputMode="decimal" style={sx("height:36px;box-sizing:border-box;padding:0 10px;background:var(--in);border:1px solid var(--l2);border-radius:6px;color:var(--t);font:500 13px 'Geist',sans-serif;font-variant-numeric:tabular-nums;outline:none;min-width:0;width:100%")} />
                           </label>
                           {" "}
                         </div>
@@ -2792,7 +2479,7 @@ export function TradePage({ vm }: { vm: V }) {
                             {" "}
                             <div style={sx("min-width:1020px")}>
                               {" "}
-                              <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 132px;gap:12px;align-items:center;height:32px;padding:0 14px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--l)")}>
+                              <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 184px;gap:12px;align-items:center;height:32px;padding:0 14px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--l)")}>
                                 <span>
                                   Market
                                 </span>
@@ -2825,7 +2512,7 @@ export function TradePage({ vm }: { vm: V }) {
                                 return (
                                   <Fragment key={i15}>
                                       {" "}
-                                      <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 132px;gap:12px;align-items:center;min-height:calc(var(--rh) + 6px);padding:0 14px;border-bottom:1px solid var(--l);font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} className="zp5">
+                                      <div style={sx("display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(5,minmax(80px,1fr)) minmax(110px,1.1fr) minmax(130px,1.1fr) 184px;gap:12px;align-items:center;min-height:calc(var(--rh) + 6px);padding:0 14px;border-bottom:1px solid var(--l);font:500 12px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} className="zp5">
                                     {" "}
                                     <div onClick={r?.goto} style={sx("display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Instrument Sans',sans-serif")}>
                                       <span style={sx(`width:20px;height:20px;flex:none;border-radius:50%;object-fit:cover;background:var(--r);box-shadow:0 0 0 1px var(--l2);display:inline-block;background:var(--r) center/cover no-repeat;background-image:url(${r?.logo ?? ''})`)} />

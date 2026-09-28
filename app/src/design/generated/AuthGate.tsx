@@ -32,7 +32,7 @@ export function AuthGate({ vm }: { vm: V }) {
                       Perpetuals on Solana, up to 100× leverage
                     </h1>
                     <p style={sx("margin:0;font-size:15px;line-height:1.55;color:var(--t2);text-wrap:pretty")}>
-                      Trade 53 markets against the vault with on-chain settlement in USDC.
+                      {"Trade "}{I(vm.auMarkets)}{" markets against the vault, settled on-chain in USDC. No gas: ZAP pays every network fee."}
                     </p>
                   </div>
                   {" "}
@@ -89,13 +89,10 @@ export function AuthGate({ vm }: { vm: V }) {
                     {" "}
                     <div style={sx("display:flex;flex-direction:column;gap:6px")}>
                       <h2 style={sx("margin:0;font:600 26px/1.15 'Instrument Sans',sans-serif;letter-spacing:-0.02em")}>
-                        {I(vm.auTitle)}
+                        Log in to ZAP
                       </h2>
                       <span style={sx("font-size:13.5px;color:var(--t2)")}>
-                        {I(vm.auSub)}{" "}
-                        <button onClick={vm.auSwap} style={sx("padding:0;border:0;background:none;color:var(--a);font:600 13.5px 'Instrument Sans',sans-serif;cursor:pointer")}>
-                          {I(vm.auSwapLabel)}
-                        </button>
+                        New here? The same step creates your account.
                       </span>
                     </div>
                     {" "}
@@ -120,40 +117,6 @@ export function AuthGate({ vm }: { vm: V }) {
                         ) : null}
                         Continue with Google
                       </button>
-                      <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
-                        <button onClick={vm.auApple} title="Continue with Apple" aria-label="Continue with Apple" style={sx("height:44px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:8px;border:1px solid var(--l2);background:var(--r);color:var(--t);font:600 13.5px 'Instrument Sans',sans-serif;cursor:pointer;transition:border-color .15s,background .15s")} className="zp0">
-                          {vm.auBusyA ? (
-                            <>
-                              <span style={sx("width:15px;height:15px;box-sizing:border-box;border-radius:50%;border:2px solid var(--l2);border-top-color:currentColor;animation:kspin .8s linear infinite;flex:none")} />
-                            </>
-                          ) : null}
-                          {vm.auBusyANo ? (
-                            <>
-                              <span style={sx("display:grid;place-items:center;width:18px")}>
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.4z" />
-                                </svg>
-                              </span>
-                            </>
-                          ) : null}
-                        </button>
-                        <button onClick={vm.auX} title="Continue with X" aria-label="Continue with X" style={sx("height:44px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:8px;border:1px solid var(--l2);background:var(--r);color:var(--t);font:600 13.5px 'Instrument Sans',sans-serif;cursor:pointer;transition:border-color .15s,background .15s")} className="zp0">
-                          {vm.auBusyX ? (
-                            <>
-                              <span style={sx("width:15px;height:15px;box-sizing:border-box;border-radius:50%;border:2px solid var(--l2);border-top-color:currentColor;animation:kspin .8s linear infinite;flex:none")} />
-                            </>
-                          ) : null}
-                          {vm.auBusyXNo ? (
-                            <>
-                              <span style={sx("display:grid;place-items:center;width:18px")}>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.2-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z" />
-                                </svg>
-                              </span>
-                            </>
-                          ) : null}
-                        </button>
-                      </div>
                       <button onClick={vm.auWallet} style={sx("height:44px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:8px;border:1px solid var(--l2);background:var(--r);color:var(--t);font:600 13.5px 'Instrument Sans',sans-serif;cursor:pointer;transition:border-color .15s,background .15s")} className="zp0">
                         {vm.auBusyW ? (
                           <>
@@ -188,39 +151,7 @@ export function AuthGate({ vm }: { vm: V }) {
                         <input type="email" value={vm.auEmail ?? ''} onChange={vm.onAuEmail} placeholder="you@example.com" style={sx("height:44px;box-sizing:border-box;padding:0 12px;background:var(--in);border:1px solid var(--l2);border-radius:8px;color:var(--t);font:500 14px 'Instrument Sans',sans-serif;outline:none")} />
                       </label>
                       {" "}
-                      <label style={sx("display:flex;flex-direction:column;gap:6px")}>
-                        <span style={sx("display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--t2)")}>
-                          Password
-                          {vm.auIsLogin ? (
-                            <>
-                              <button onClick={vm.auForgot} style={sx("padding:0;border:0;background:none;color:var(--t3);font:500 12px 'Instrument Sans',sans-serif;cursor:pointer")} className="zp1">
-                                Forgot password?
-                              </button>
-                            </>
-                          ) : null}
-                        </span>
-                        <input type="password" value={vm.auPass ?? ''} onChange={vm.onAuPass} placeholder={vm.auPassPh} style={sx("height:44px;box-sizing:border-box;padding:0 12px;background:var(--in);border:1px solid var(--l2);border-radius:8px;color:var(--t);font:500 14px 'Instrument Sans',sans-serif;outline:none")} />
-                      </label>
                       {" "}
-                      {vm.auIsSignup ? (
-                        <>
-                          <div style={sx("display:flex;align-items:center;gap:8px;margin-top:-4px")}>
-                            <div style={sx("flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:4px")}>
-                              {(Array.isArray(vm.auStr) ? vm.auStr : []).map((b: any, i15: number) => {
-                                const $index = i15;
-                                return (
-                                  <Fragment key={i15}>
-                                      <span style={sx(`height:3px;border-radius:2px;background:${b?.c ?? ''};transition:background .2s`)} />
-                                  </Fragment>
-                                );
-                              })}
-                            </div>
-                            <span style={sx(`min-width:48px;text-align:right;font-size:11.5px;color:${vm.auStrC ?? ''}`)}>
-                              {I(vm.auStrL)}
-                            </span>
-                          </div>
-                        </>
-                      ) : null}
                       {" "}
                       {vm.auErr ? (
                         <>
@@ -236,21 +167,13 @@ export function AuthGate({ vm }: { vm: V }) {
                             <span style={sx("width:15px;height:15px;box-sizing:border-box;border-radius:50%;border:2px solid var(--l2);border-top-color:currentColor;animation:kspin .8s linear infinite;flex:none")} />
                           </>
                         ) : null}
-                        {I(vm.auCta)}
+                        Email me a code
                       </button>
                       {" "}
                     </div>
                     {" "}
                     <span style={sx("font-size:11.5px;line-height:1.5;color:var(--t3);text-align:center;text-wrap:pretty")}>
-                      {"By continuing you agree to the "}
-                      <a href="#" style={sx("color:var(--t2)")}>
-                        Terms of Service
-                      </a>
-                      {" and "}
-                      <a href="#" style={sx("color:var(--t2)")}>
-                        Privacy Policy
-                      </a>
-                      .
+                      Devnet only: test USDC from the faucet, no real funds.
                     </span>
                     {" "}
                   </>
@@ -275,7 +198,7 @@ export function AuthGate({ vm }: { vm: V }) {
                         <span style={sx("color:var(--t);font-weight:600")}>
                           {I(vm.auEmail)}
                         </span>
-                        . It expires in 10 minutes.
+                        .
                       </span>
                     </div>
                     {" "}
@@ -320,51 +243,13 @@ export function AuthGate({ vm }: { vm: V }) {
                   </>
                 ) : null}
                 {" "}
-                {vm.auResetStep ? (
+                {" "}
+                {vm.auPending ? (
                   <>
-                    {" "}
-                    <button onClick={vm.auBack} style={sx("width:max-content;display:flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:var(--t2);font:500 13px 'Instrument Sans',sans-serif;cursor:pointer")} className="zp1">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                      Back to log in
-                    </button>
-                    {" "}
-                    <div style={sx("display:flex;flex-direction:column;gap:6px")}>
-                      <h2 style={sx("margin:0;font:600 26px/1.15 'Instrument Sans',sans-serif;letter-spacing:-0.02em")}>
-                        {I(vm.auResetTitle)}
-                      </h2>
-                      <span style={sx("font-size:13.5px;line-height:1.5;color:var(--t2)")}>
-                        {I(vm.auResetSub)}
-                      </span>
+                    <div style={sx("display:flex;align-items:center;gap:12px;padding:18px 16px;border:1px solid var(--l2);border-radius:10px;background:var(--r);font-size:13.5px;color:var(--t2)")}>
+                      <span style={sx("width:16px;height:16px;box-sizing:border-box;border-radius:50%;border:2px solid var(--l2);border-top-color:var(--a);animation:kspin .8s linear infinite;flex:none")} />
+                      Setting up your wallet…
                     </div>
-                    {" "}
-                    {vm.auResetForm ? (
-                      <>
-                        <label style={sx("display:flex;flex-direction:column;gap:6px")}>
-                          <span style={sx("display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--t2)")}>
-                            Email
-                          </span>
-                          <input type="email" value={vm.auEmail ?? ''} onChange={vm.onAuEmail} placeholder="you@example.com" style={sx("height:44px;box-sizing:border-box;padding:0 12px;background:var(--in);border:1px solid var(--l2);border-radius:8px;color:var(--t);font:500 14px 'Instrument Sans',sans-serif;outline:none")} />
-                        </label>
-                        {vm.auErr ? (
-                          <>
-                            <div style={sx("padding:9px 11px;border-radius:7px;background:var(--rt);color:var(--rd);font-size:12.5px")}>
-                              {I(vm.auErr)}
-                            </div>
-                          </>
-                        ) : null}
-                        <button onClick={vm.auSendReset} style={sx("height:46px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:8px;border:0;background:var(--af);color:var(--ai);font:600 14px 'Instrument Sans',sans-serif;cursor:pointer;transition:filter .15s")} className="zp2">
-                          {vm.auBusyE ? (
-                            <>
-                              <span style={sx("width:15px;height:15px;box-sizing:border-box;border-radius:50%;border:2px solid var(--l2);border-top-color:currentColor;animation:kspin .8s linear infinite;flex:none")} />
-                            </>
-                          ) : null}
-                          Send reset link
-                        </button>
-                      </>
-                    ) : null}
-                    {" "}
                   </>
                 ) : null}
                 {" "}
@@ -404,7 +289,7 @@ export function AuthGate({ vm }: { vm: V }) {
                               ) : null}
                               {w?.idle ? (
                                 <>
-                                  Detected
+                                  Connect
                                 </>
                               ) : null}
                             </span>

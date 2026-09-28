@@ -7,7 +7,7 @@ export function PhoneTabBar({ vm }: { vm: V }) {
     <>
       {vm.phone ? (
         <>
-          <nav style={sx("height:64px;flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--hd);border-top:1px solid var(--l);padding-bottom:6px;box-sizing:border-box")}>
+          <nav style={sx("height:64px;flex:none;display:grid;grid-template-columns:repeat(5,1fr);background:var(--hd);border-top:1px solid var(--l);padding-bottom:6px;box-sizing:border-box")}>
             {" "}
             {(Array.isArray(vm.tabs) ? vm.tabs : []).map((t: any, i6: number) => {
               const $index = i6;

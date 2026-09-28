@@ -499,7 +499,7 @@ export function VaultPage({ vm }: { vm: V }) {
                     </div>
                     {" "}
                     <label style={sx(`height:46px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;background:var(--in);border:1px solid ${vm.vFocBd ?? ''};border-radius:6px;box-shadow:${vm.vFocSh ?? ''};transition:border-color .15s,box-shadow .15s`)}>
-                      <input value={vm.vamt ?? ''} onChange={vm.onVamt} onFocus={vm.vFocOn} onBlur={vm.vFocOff} placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 17px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
+                      <input value={vm.vamt ?? ''} onChange={vm.onVamt} aria-label="Vault amount" onFocus={vm.vFocOn} onBlur={vm.vFocOff} placeholder="0.00" inputMode="decimal" style={sx("flex:1;min-width:0;background:none;border:0;outline:none;color:var(--t);font:500 17px 'Geist',sans-serif;font-variant-numeric:tabular-nums")} />
                       <span style={sx("display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)")}>
                         <span style={sx("width:16px;height:16px;border-radius:50%;background:url(\"/logos/usdc.png\") center/cover")} />
                         USDC

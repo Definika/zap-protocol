@@ -46,8 +46,13 @@ export function DesktopHeader({ vm }: { vm: V }) {
             {" "}
             <div style={sx("margin-left:auto;display:flex;align-items:center;gap:8px")}>
               {" "}
+              {vm.devOracle ? (
+                <span title="Prices come from ZAP's test oracle until the Pyth Pro feed is connected" style={sx("font:600 10.5px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--am);background:var(--amt);padding:6px 8px;border-radius:4px")}>
+                  DEV ORACLE
+                </span>
+              ) : null}
               <span style={sx("font:600 10.5px/1 'Geist Mono',monospace;letter-spacing:.08em;color:var(--a);background:var(--at);padding:6px 8px;border-radius:4px")}>
-                DEVNET
+                {I(vm.clusterTag)}
               </span>
               {" "}
               {vm.connected ? (
@@ -62,10 +67,12 @@ export function DesktopHeader({ vm }: { vm: V }) {
                     {" "}
                     <span style={sx("width:1px;height:14px;background:var(--l2)")} />
                     {" "}
-                    <span style={sx(`padding:0 10px;display:flex;align-items:center;gap:6px;color:${vm.solColor ?? ''}`)}>
-                      <span title="SOL" style={sx("width:16px;height:16px;border-radius:50%;background:url(\"/logos/sol.png\") center/cover")} />
-                      {I(vm.solText)}
-                    </span>
+                    <button onClick={vm.openFunds} style={sx("height:100%;padding:0 10px;display:flex;align-items:center;gap:5px;background:none;border:0;border-radius:0 6px 6px 0;color:var(--a);font:600 12px 'Instrument Sans',sans-serif;cursor:pointer")} className="zp5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      Deposit
+                    </button>
                     {" "}
                   </div>
                   {" "}
@@ -75,16 +82,6 @@ export function DesktopHeader({ vm }: { vm: V }) {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9l6 6 6-6" />
                     </svg>
-                  </button>
-                  {" "}
-                </>
-              ) : null}
-              {" "}
-              {vm.disconnected ? (
-                <>
-                  {" "}
-                  <button onClick={vm.openWallet} style={sx("height:30px;padding:0 14px;border-radius:6px;background:var(--af);border:0;color:var(--ai);font:600 12.5px 'Instrument Sans',sans-serif;cursor:pointer")}>
-                    Connect wallet
                   </button>
                   {" "}
                 </>

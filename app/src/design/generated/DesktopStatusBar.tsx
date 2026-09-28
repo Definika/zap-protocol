@@ -13,7 +13,7 @@ export function DesktopStatusBar({ vm }: { vm: V }) {
             </span>
             {" "}
             <span>
-              devnet
+              {I(vm.cluster)}
             </span>
             {" "}
             <span>
@@ -27,7 +27,7 @@ export function DesktopStatusBar({ vm }: { vm: V }) {
               <span style={sx("color:var(--t2)")}>
                 {I(vm.latency)}
               </span>
-              {" ms"}
+              {" ms to ZAP"}
             </span>
             {" "}
             <span style={sx("margin-left:auto;display:flex;gap:8px")}>

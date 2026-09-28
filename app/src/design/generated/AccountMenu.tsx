@@ -13,7 +13,7 @@ export function AccountMenu({ vm }: { vm: V }) {
               <span style={sx(`width:28px;height:28px;flex:none;border-radius:8px;display:inline-block;background:var(--r) center/cover no-repeat;background-image:url(${vm.walletLogo ?? ''})`)} />
               <div>
                 <div style={sx("font-size:11px;color:var(--t3)")}>
-                  {"Connected with "}{I(vm.walletName)}
+                  {I(vm.walletLabel)}{" · "}{I(vm.walletName)}
                 </div>
                 <div style={sx("font:500 12px 'Geist Mono',monospace;margin-top:3px")}>
                   {I(vm.addrMid)}
