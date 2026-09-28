@@ -12,7 +12,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build:program": "anchor build --arch v0",
+    "build:program": "anchor build --arch v0 && node scripts/sync-idl.ts",
     "test:math": "cargo test -p zap-math",
     "test:program": "anchor build --arch v0 && cargo test -p zap",
     "test": "npm test --workspaces --if-present",
@@ -21,8 +21,10 @@
     "dev:engine": "npm run dev -w services/engine"
   },
   "devDependencies": {
+    "@solana/spl-token": "^0.4.15",
     "@types/node": "^26.6.3",
     "playwright-core": "^1.63.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
   }

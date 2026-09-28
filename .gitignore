@@ -31,3 +31,4 @@ keys/
 .vscode/*
 !.vscode/extensions.json
 design/extracted/
+config/deployments/localnet.json
