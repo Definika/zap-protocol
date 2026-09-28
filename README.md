@@ -22,6 +22,9 @@ and settle everything on-chain.
 Requirements: Rust (the toolchain is pinned in `rust-toolchain.toml`), Solana CLI 4.x, Anchor CLI 1.2, Node 22+.
 
 ```bash
-cargo test -p zap-math   # math unit tests
-anchor build             # build the program and IDL
+cargo test -p zap-math        # math unit tests
+npm run build:program         # anchor build --arch v0 (SBPF v0: what we test in LiteSVM is what we deploy)
+cargo test -p zap             # program unit + LiteSVM integration tests
+npm run design:extract -w app # unpack fonts, logos and design reference files (needed once for the app)
+npm run dev:app               # web app (dev)
 ```

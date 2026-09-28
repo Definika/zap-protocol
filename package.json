@@ -12,9 +12,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build:program": "anchor build",
+    "build:program": "anchor build --arch v0",
     "test:math": "cargo test -p zap-math",
-    "test:program": "anchor build && cargo test -p zap",
+    "test:program": "anchor build --arch v0 && cargo test -p zap",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:app": "npm run dev -w app",
