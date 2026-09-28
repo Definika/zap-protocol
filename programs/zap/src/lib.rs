@@ -104,6 +104,16 @@ pub mod zap {
         instructions::trade::close_position(ctx, price_msg, side, position_id, size, acceptable_price)
     }
 
+    pub fn reverse_position(
+        ctx: Context<TradeWithPrice>,
+        price_msg: Vec<u8>,
+        side: u8,
+        position_id: u64,
+        acceptable_price: u64,
+    ) -> Result<()> {
+        instructions::trade::reverse_position(ctx, price_msg, side, position_id, acceptable_price)
+    }
+
     pub fn add_collateral(ctx: Context<TradeNoPrice>, side: u8, position_id: u64, amount: u64) -> Result<()> {
         instructions::trade::add_collateral(ctx, side, position_id, amount)
     }
@@ -120,6 +130,52 @@ pub mod zap {
 
     pub fn set_tpsl(ctx: Context<TradeNoPrice>, side: u8, position_id: u64, tp_price: u64, sl_price: u64) -> Result<()> {
         instructions::trade::set_tpsl(ctx, side, position_id, tp_price, sl_price)
+    }
+
+    // Orders
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn place_order(
+        ctx: Context<ManageOrder>,
+        side: u8,
+        kind: u8,
+        flags: u8,
+        position_id: u64,
+        size_usd: u64,
+        collateral: u64,
+        trigger_price: u64,
+        acceptable_price: u64,
+        tp_price: u64,
+        sl_price: u64,
+    ) -> Result<()> {
+        instructions::orders::place_order(
+            ctx, side, kind, flags, position_id, size_usd, collateral, trigger_price, acceptable_price, tp_price, sl_price,
+        )
+    }
+
+    pub fn update_order(ctx: Context<ManageOrder>, order_id: u64, trigger_price: u64, acceptable_price: u64) -> Result<()> {
+        instructions::orders::update_order(ctx, order_id, trigger_price, acceptable_price)
+    }
+
+    pub fn cancel_order(ctx: Context<ManageOrder>, order_id: u64) -> Result<()> {
+        instructions::orders::cancel_order(ctx, order_id)
+    }
+
+    /// Permissionless: executes a triggered order (`target` 0, `id` = order id) or a position's take-profit (1) or
+    /// stop-loss (2) (`id` = position id).
+    pub fn execute_trigger(
+        ctx: Context<ExecuteTrigger>,
+        price_msg: Vec<u8>,
+        target: u8,
+        side: u8,
+        id: u64,
+    ) -> Result<()> {
+        instructions::orders::execute_trigger(ctx, price_msg, target, side, id)
+    }
+
+    /// Permissionless liquidation at the signed oracle price.
+    pub fn liquidate(ctx: Context<Liquidate>, price_msg: Vec<u8>, side: u8, position_id: u64) -> Result<()> {
+        instructions::liquidate::liquidate(ctx, price_msg, side, position_id)
     }
 
     // LP vault (deposits come from, and withdrawals go to, the trading balance)

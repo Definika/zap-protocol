@@ -634,3 +634,129 @@ impl Env {
         }
     }
 }
+
+// Orders, triggers, liquidation
+
+impl Env {
+    #[allow(clippy::too_many_arguments)]
+    pub fn place_order_ix(
+        &self,
+        owner: &Keypair,
+        market: u16,
+        side: u8,
+        kind: u8,
+        flags: u8,
+        position_id: u64,
+        size: u64,
+        collateral: u64,
+        trigger: u64,
+        acceptable: u64,
+        tp: u64,
+        sl: u64,
+    ) -> Instruction {
+        Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::PlaceOrder {
+                side,
+                kind,
+                flags,
+                position_id,
+                size_usd: size,
+                collateral,
+                trigger_price: trigger,
+                acceptable_price: acceptable,
+                tp_price: tp,
+                sl_price: sl,
+            }
+            .data(),
+            zap::accounts::ManageOrder {
+                signer: owner.pubkey(),
+                config: config_pda(),
+                market: market_pda(market),
+                account: account_pda(&owner.pubkey()),
+            }
+            .to_account_metas(None),
+        )
+    }
+
+    fn manage_metas(&self, owner: &Keypair, market: u16) -> Vec<AccountMeta> {
+        zap::accounts::ManageOrder {
+            signer: owner.pubkey(),
+            config: config_pda(),
+            market: market_pda(market),
+            account: account_pda(&owner.pubkey()),
+        }
+        .to_account_metas(None)
+    }
+
+    pub fn update_order_ix(&self, owner: &Keypair, market: u16, order_id: u64, trigger: u64, acceptable: u64) -> Instruction {
+        Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::UpdateOrder { order_id, trigger_price: trigger, acceptable_price: acceptable }.data(),
+            self.manage_metas(owner, market),
+        )
+    }
+
+    pub fn cancel_order_ix(&self, owner: &Keypair, market: u16, order_id: u64) -> Instruction {
+        Instruction::new_with_bytes(zap::ID, &zap::instruction::CancelOrder { order_id }.data(), self.manage_metas(owner, market))
+    }
+
+    pub fn execute_trigger_ixs(&self, owner: &Pubkey, market: u16, msg: &[u8], target: u8, side: u8, id: u64) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::ExecuteTrigger { price_msg: msg.to_vec(), target, side, id }.data(),
+            zap::accounts::ExecuteTrigger {
+                executor: self.relayer.pubkey(),
+                config: config_pda(),
+                pool: pool_pda(),
+                market: market_pda(market),
+                account: account_pda(owner),
+                pyth_storage: Pubkey::default(),
+                instructions: solana_sdk_ids::sysvar::instructions::ID,
+            }
+            .to_account_metas(None),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    pub fn liquidate_ixs(&self, liquidator: &Pubkey, owner: &Pubkey, market: u16, msg: &[u8], side: u8, id: u64) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::Liquidate { price_msg: msg.to_vec(), side, position_id: id }.data(),
+            zap::accounts::Liquidate {
+                liquidator: *liquidator,
+                liquidator_account: account_pda(liquidator),
+                config: config_pda(),
+                pool: pool_pda(),
+                market: market_pda(market),
+                account: account_pda(owner),
+                pyth_storage: Pubkey::default(),
+                instructions: solana_sdk_ids::sysvar::instructions::ID,
+            }
+            .to_account_metas(None),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    pub fn reverse_ixs(&self, owner: &Keypair, market: u16, msg: &[u8], side: u8, id: u64, acceptable: u64) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::ReversePosition { price_msg: msg.to_vec(), side, position_id: id, acceptable_price: acceptable }
+                .data(),
+            self.priced_metas(&owner.pubkey(), market, &owner.pubkey()),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    /// Sends as the relayer (fee payer) with `signer`.
+    pub fn relay(&mut self, ixs: &[Instruction], signer: &Keypair) -> TxResult {
+        let relayer = self.relayer.insecure_clone();
+        self.send(ixs, &relayer, &[signer])
+    }
+
+    /// Sends as the relayer alone (keeper-style permissionless calls).
+    pub fn crank(&mut self, ixs: &[Instruction]) -> TxResult {
+        let relayer = self.relayer.insecure_clone();
+        self.send(ixs, &relayer, &[])
+    }
+}

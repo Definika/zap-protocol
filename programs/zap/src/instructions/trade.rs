@@ -72,45 +72,51 @@ pub fn cancel_bound_orders(acct: &mut TradingAccount, position_id: u64) {
     acct.balance += refund;
 }
 
-/// Market order: opens a position or adds to one, at the oracle price plus spread and impact.
-/// Collateral and the open fee come from the account's free balance.
+/// Result of opening or adding to a position.
+pub struct OpenOutcome {
+    pub position_id: u64,
+    pub fill_price: u64,
+    pub fee: u64,
+    pub spread_cost: u64,
+    pub impact_cost: u64,
+    pub owed: trade::Owed,
+    pub size_after: u64,
+    pub collateral_after: u64,
+}
+
+/// Opens (or adds to) the `side_` position at the oracle price plus spread and impact. Collateral and the open fee come
+/// from the free balance. Shared by market orders, limit/stop fills and reverse. The caller refreshes the funding rate.
 #[allow(clippy::too_many_arguments)]
-pub fn open_position(
-    ctx: Context<TradeWithPrice>,
-    price_msg: Vec<u8>,
+pub fn open_at(
+    acct: &mut TradingAccount,
+    market: &mut Market,
+    pool: &mut Pool,
+    params: &ConfigParams,
+    p: &MarketPrice,
     side_: u8,
     size: u64,
     collateral: u64,
     acceptable_price: u64,
     tp_price: u64,
     sl_price: u64,
-) -> Result<()> {
-    let params = ctx.accounts.config.params;
-    let now = Clock::get()?.unix_timestamp;
+    now: i64,
+) -> Result<OpenOutcome> {
     require!(!params.paused, ZapError::ProtocolPaused);
     let s = trade::math_side(side_)?;
     require!(size >= params.min_order_usd, ZapError::MinSize);
     require!(collateral > 0, ZapError::ZeroAmount);
-
-    let mut market = ctx.accounts.market.load_mut()?;
     match market.status {
         market_status::ACTIVE => {}
         market_status::REDUCE_ONLY => return err!(ZapError::MarketReduceOnly),
         _ => return err!(ZapError::MarketPaused),
     }
-    let p = verified_price(&ctx, &mut market, &params, &price_msg, now)?;
     require!(
         u128::from(p.conf) * 10_000 <= u128::from(p.price) * u128::from(market.params.max_conf_bps),
         ZapError::ConfidenceTooWide
     );
-    let mut pool = ctx.accounts.pool.load_mut()?;
-    let mut acct = ctx.accounts.account.load_mut()?;
-    acct.authorize(&ctx.accounts.signer.key(), now, true)?;
-    accrue::accrue_borrow(&mut pool, &params, now)?;
-    accrue::accrue_funding(&mut market, now)?;
 
     let is_buy = side_ == side::LONG;
-    let f = trade::fill(&market, &p, size, is_buy)?;
+    let f = trade::fill(market, p, size, is_buy)?;
     trade::check_slippage(f.price, acceptable_price, is_buy)?;
     let units = price::units_for(size, f.price, s.is_long()).m()?;
     let fee = fees::open_fee(size, market.params.open_fee_bps).m()?;
@@ -120,7 +126,7 @@ pub fn open_position(
     let (i, owed) = match acct.find_position(market.index, side_) {
         Some(i) => {
             require!(p.ts_us >= acct.positions[i].last_price_ts_us, ZapError::BelowPositionTimestamp);
-            let o = trade::settle(&mut acct.positions[i], &mut market, &mut pool, &params)?;
+            let o = trade::settle(&mut acct.positions[i], market, pool, params)?;
             (i, o)
         }
         None => {
@@ -140,16 +146,17 @@ pub fn open_position(
         }
     };
 
-    trade::add_to_position(&mut acct.positions[i], &mut market, &mut pool, size, units, collateral)?;
-    trade::check_open_health(&acct.positions[i], &market, p.price)?;
-    trade::check_caps(&market, &pool, &params, side_, acct.positions[i].size_usd)?;
+    trade::add_to_position(&mut acct.positions[i], market, pool, size, units, collateral)?;
+    trade::check_open_health(&acct.positions[i], market, p.price)?;
+    trade::check_caps(market, pool, params, side_, acct.positions[i].size_usd)?;
 
-    trade::credit_fee(&mut pool, fee, params.protocol_fee_share_bps)?;
+    trade::credit_fee(pool, fee, params.protocol_fee_share_bps)?;
     acct.balance -= debit;
     acct.fees_paid = acct.fees_paid.saturating_add(fee);
     acct.borrow_paid = acct.borrow_paid.saturating_add(owed.borrow);
     acct.funding_paid = acct.funding_paid.saturating_add(owed.funding as i64);
     acct.volume = acct.volume.saturating_add(size);
+    acct.seq += 1;
     let spread_cost = trade::frac_cost(size, f.spread)?;
     let impact_cost = trade::frac_cost(size, f.impact)?;
     pool.cum_trading_fees = pool.cum_trading_fees.saturating_add(fee);
@@ -158,7 +165,6 @@ pub fn open_position(
     market.cum_volume = market.cum_volume.saturating_add(size);
     market.cum_fees = market.cum_fees.saturating_add(fee);
     market.trade_seq += 1;
-    accrue::refresh_funding_rate(&mut market, &params)?;
 
     let pos = &mut acct.positions[i];
     if tp_price != 0 {
@@ -170,36 +176,117 @@ pub fn open_position(
     pos.last_price_ts_us = p.ts_us;
     pos.updated_at = now;
     pos.fees_paid = pos.fees_paid.saturating_add(fee);
-    let (position_id, size_after, collateral_after) = (pos.position_id, pos.size_usd, pos.collateral);
-    acct.seq += 1;
+    Ok(OpenOutcome {
+        position_id: pos.position_id,
+        fill_price: f.price,
+        fee,
+        spread_cost,
+        impact_cost,
+        owed,
+        size_after: pos.size_usd,
+        collateral_after: pos.collateral,
+    })
+}
 
+#[allow(clippy::too_many_arguments)]
+pub fn emit_open(
+    account: Pubkey,
+    acct: &TradingAccount,
+    market: &Market,
+    pool: &mut Pool,
+    side_: u8,
+    kind: u8,
+    order_id: u64,
+    size: u64,
+    p: &MarketPrice,
+    o: &OpenOutcome,
+    now: i64,
+) {
     emit!(Trade {
         pool_seq: pool.next_seq(),
         ts: now,
-        account: ctx.accounts.account.key(),
+        account,
         owner: acct.owner,
         market: market.index,
         side: side_,
-        kind: trade_kind::OPEN,
-        position_id,
-        order_id: 0,
+        kind,
+        position_id: o.position_id,
+        order_id,
         size_delta: size as i64,
-        size_after,
-        collateral_after,
+        size_after: o.size_after,
+        collateral_after: o.collateral_after,
         oracle_price: p.price,
-        fill_price: f.price,
+        fill_price: o.fill_price,
         price_ts_us: p.ts_us,
-        open_fee: fee,
+        open_fee: o.fee,
         close_fee: 0,
-        spread_cost,
-        impact_cost,
-        borrow_paid: owed.borrow,
-        funding_paid: owed.funding as i64,
+        spread_cost: o.spread_cost,
+        impact_cost: o.impact_cost,
+        borrow_paid: o.owed.borrow,
+        funding_paid: o.owed.funding as i64,
         pnl: 0,
         payout: 0,
         oi_long_after: market.oi_long,
         oi_short_after: market.oi_short,
     });
+}
+
+/// Market order: opens a position or adds to one.
+#[allow(clippy::too_many_arguments)]
+pub fn open_position(
+    ctx: Context<TradeWithPrice>,
+    price_msg: Vec<u8>,
+    side_: u8,
+    size: u64,
+    collateral: u64,
+    acceptable_price: u64,
+    tp_price: u64,
+    sl_price: u64,
+) -> Result<()> {
+    let params = ctx.accounts.config.params;
+    let now = Clock::get()?.unix_timestamp;
+    let mut market = ctx.accounts.market.load_mut()?;
+    let p = verified_price(&ctx, &mut market, &params, &price_msg, now)?;
+    let mut pool = ctx.accounts.pool.load_mut()?;
+    let mut acct = ctx.accounts.account.load_mut()?;
+    acct.authorize(&ctx.accounts.signer.key(), now, true)?;
+    accrue::accrue_borrow(&mut pool, &params, now)?;
+    accrue::accrue_funding(&mut market, now)?;
+    let o = open_at(&mut acct, &mut market, &mut pool, &params, &p, side_, size, collateral, acceptable_price, tp_price, sl_price, now)?;
+    accrue::refresh_funding_rate(&mut market, &params)?;
+    emit_open(ctx.accounts.account.key(), &acct, &market, &mut pool, side_, trade_kind::OPEN, 0, size, &p, &o, now);
+    Ok(())
+}
+
+/// Closes the whole position and opens the opposite side with the same size and collateral, at one price.
+pub fn reverse_position(
+    ctx: Context<TradeWithPrice>,
+    price_msg: Vec<u8>,
+    side_: u8,
+    position_id: u64,
+    acceptable_price: u64,
+) -> Result<()> {
+    let params = ctx.accounts.config.params;
+    let now = Clock::get()?.unix_timestamp;
+    let mut market = ctx.accounts.market.load_mut()?;
+    require!(market.status == market_status::ACTIVE, ZapError::MarketReduceOnly);
+    let p = verified_price(&ctx, &mut market, &params, &price_msg, now)?;
+    let mut pool = ctx.accounts.pool.load_mut()?;
+    let mut acct = ctx.accounts.account.load_mut()?;
+    acct.authorize(&ctx.accounts.signer.key(), now, true)?;
+    accrue::accrue_borrow(&mut pool, &params, now)?;
+    accrue::accrue_funding(&mut market, now)?;
+
+    let i = position_index(&acct, &market, side_, position_id)?;
+    let (size, collateral) = (acct.positions[i].size_usd, acct.positions[i].collateral);
+    let closed = close_at(&mut acct, i, &mut market, &mut pool, &params, &p, u64::MAX, acceptable_price, now)?;
+    emit_close(ctx.accounts.account.key(), &acct, i, &market, &mut pool, side_, trade_kind::CLOSE, position_id, 0, &p, &closed, now);
+    let opposite = if side_ == side::LONG { side::SHORT } else { side::LONG };
+    // the new position reuses the settled collateral; both legs trade in the same direction, so the same bound applies
+    let collateral = collateral.saturating_sub(closed.owed.total().max(0) as u64);
+    let o = open_at(&mut acct, &mut market, &mut pool, &params, &p, opposite, size, collateral, acceptable_price, 0, 0, now)?;
+    accrue::refresh_funding_rate(&mut market, &params)?;
+    emit_open(ctx.accounts.account.key(), &acct, &market, &mut pool, opposite, trade_kind::OPEN, 0, size, &p, &o, now);
     Ok(())
 }
 
