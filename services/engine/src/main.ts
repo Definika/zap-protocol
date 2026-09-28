@@ -5,7 +5,7 @@ import { Connection } from '@solana/web3.js';
 import { config } from './config';
 import { openDb } from './db';
 import { OracleHub } from './oracle/hub';
-import { startDevOracle } from './oracle/dev';
+import { startDevOracle, type DevOracle } from './oracle/dev';
 import { Mirror } from './chain/mirror';
 import { Sender } from './chain/send';
 import { Relayer } from './relayer';
@@ -13,6 +13,7 @@ import { Faucet } from './faucet';
 import { Candles } from './candles';
 import { Indexer } from './indexer';
 import { startApi } from './api';
+import { Keeper } from './keeper';
 import { logger } from './log';
 
 const log = logger('main');
@@ -24,8 +25,9 @@ async function main() {
   const db = await openDb();
 
   const hub = new OracleHub(config.oracleMode);
+  let devOracle: DevOracle | undefined;
   if (has('oracle')) {
-    if (config.oracleMode === 'dev') await startDevOracle(hub, config.keys.oracle());
+    if (config.oracleMode === 'dev') devOracle = await startDevOracle(hub, config.keys.oracle());
     else throw new Error('ORACLE_MODE=pyth is not wired yet');
   }
 
@@ -42,10 +44,14 @@ async function main() {
   const relayer = has('relayer') ? new Relayer(connection, sender, config.keys.relayer()) : undefined;
   const faucet = has('faucet') ? new Faucet(db, sender, config.keys.relayer(), config.keys.faucet()) : undefined;
 
-  if (has('api')) await startApi({ db, hub, mirror, candles, indexer, relayer, faucet });
+  const keeper = has('keeper') ? new Keeper(mirror, hub, sender, config.keys.keeper()) : undefined;
+  await keeper?.start();
+
+  if (has('api')) await startApi({ db, hub, mirror, candles, indexer, relayer, faucet, devOracle });
 
   const shutdown = async () => {
     log.info('shutting down');
+    keeper?.stop();
     await indexer?.stop();
     await mirror.stop();
     await db.close();

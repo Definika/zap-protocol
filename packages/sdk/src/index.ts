@@ -7,4 +7,5 @@ export * from './tx';
 export * from './events';
 export * from './markets';
 export { ZapErrorCode } from './idl/errors';
+export * from './quote';
 export * as math from './math';

@@ -35,7 +35,7 @@ export class Indexer {
     this.sub = this.connection.onLogs(PROGRAM_ID, (l, ctx) => {
       if (!l.err) void this.ingest(l.signature, ctx.slot, Math.floor(Date.now() / 1000), l.logs);
     }, 'confirmed');
-    await this.poll();
+    await this.poll().catch((e) => log.warn('initial poll failed', e));
     this.timer = setInterval(() => void this.poll().catch((e) => log.warn('poll failed', e)), POLL_MS);
   }
 
@@ -49,8 +49,20 @@ export class Indexer {
     const sigs: ConfirmedSignatureInfo[] = [];
     let before: string | undefined;
     // Walk back from the newest signature to the cursor (at most a few pages per poll).
+    let until = cursor;
     for (let page = 0; page < 10; page++) {
-      const batch = await this.connection.getSignaturesForAddress(PROGRAM_ID, { until: cursor, before, limit: 1000 }, 'confirmed');
+      let batch: ConfirmedSignatureInfo[];
+      try {
+        // Finalized only: the node resolves `until` cursors against rooted history. The log subscription covers the
+        // last few seconds.
+        batch = await this.connection.getSignaturesForAddress(PROGRAM_ID, { until, before, limit: 1000 }, 'finalized');
+      } catch (e) {
+        // The node no longer knows the cursor (pruned history or a reset ledger): continue from recent history.
+        if (!until || !/not found/i.test(String(e))) throw e;
+        log.warn('indexer cursor unknown to the node; resuming from recent history');
+        until = undefined;
+        batch = await this.connection.getSignaturesForAddress(PROGRAM_ID, { before, limit: 1000 }, 'finalized');
+      }
       sigs.push(...batch);
       if (batch.length < 1000) break;
       before = batch[batch.length - 1]!.signature;

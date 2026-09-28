@@ -27,6 +27,7 @@ export interface ApiDeps {
   indexer?: Indexer;
   relayer?: Relayer;
   faucet?: Faucet;
+  devOracle?: { shock(feedId: number, pct: number): boolean };
 }
 
 /** JSON with bigint → string and PublicKey → base58. */
@@ -188,6 +189,15 @@ export async function startApi(deps: ApiDeps) {
       return reply.code(500).send({ error: 'faucet failed' });
     }
   });
+
+  // Local testing only: move a dev-oracle price at once (never available with the Pyth oracle or off localnet).
+  if (deps.devOracle && config.cluster === 'localnet') {
+    app.post<{ Body: { feedId?: number; pct?: number } }>('/v1/dev/shock', async (req, reply) => {
+      const { feedId, pct } = req.body ?? {};
+      if (typeof feedId !== 'number' || typeof pct !== 'number' || Math.abs(pct) > 50) return reply.code(400).send({ error: 'feedId and pct (±50) required' });
+      return { ok: deps.devOracle!.shock(feedId, pct) };
+    });
+  }
 
   // WebSocket: { op: 'sub' | 'unsub', ch: 'prices' | 'markets' | 'status' | `account:${owner}` | `trades:${market}` }
   const clients = new Map<WebSocket, Set<string>>();

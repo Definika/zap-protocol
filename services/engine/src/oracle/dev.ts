@@ -35,7 +35,13 @@ function gaussian(): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
 }
 
-export async function startDevOracle(hub: OracleHub, signer: Keypair): Promise<() => void> {
+export interface DevOracle {
+  stop(): void;
+  /** Moves a feed's price by `pct` percent at once (local testing only). */
+  shock(feedId: number, pct: number): boolean;
+}
+
+export async function startDevOracle(hub: OracleHub, signer: Keypair): Promise<DevOracle> {
   const key: KeyObject = createPrivateKey({
     key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), Buffer.from(signer.secretKey.subarray(0, 32))]),
     format: 'der',
@@ -89,5 +95,14 @@ export async function startDevOracle(hub: OracleHub, signer: Keypair): Promise<(
   };
   await tick();
   const timer = setInterval(tick, TICK_MS);
-  return () => clearInterval(timer);
+  return {
+    stop: () => clearInterval(timer),
+    shock: (feedId, pct) => {
+      const p = price.get(feedId);
+      if (p === undefined) return false;
+      price.set(feedId, p * (1 + pct / 100));
+      anchor.set(feedId, p * (1 + pct / 100));
+      return true;
+    },
+  };
 }
