@@ -40,12 +40,13 @@ fn scale_to_12(m: u64, expo: i32) -> Result<u64> {
     }
 }
 
-/// Half-spread as a fraction of `FRAC_ONE`: `max(min_spread_bps, conf * conf_mult_bps / 1e4 / price)`, rounded up.
-pub fn spread_frac(price12: u64, conf12: u64, min_spread_bps: u16, conf_mult_bps: u16) -> Result<u128> {
+/// Half-spread as a fraction of `FRAC_ONE`: `max(min_spread, conf * conf_mult_bps / 1e4 / price)`, rounded up.
+/// `min_spread` is itself a `FRAC_ONE` fraction so it can go below 1bp (e.g. 0.5bp = 5e7).
+pub fn spread_frac(price12: u64, conf12: u64, min_spread: u128, conf_mult_bps: u16) -> Result<u128> {
     if price12 == 0 {
         return Err(MathError::InvalidPrice);
     }
-    let floor = min_spread_bps as u128 * FRAC_PER_BPS;
+    let floor = min_spread;
     if conf12 == 0 || conf_mult_bps == 0 {
         return Ok(floor);
     }
@@ -136,12 +137,14 @@ mod tests {
     fn spread_uses_the_larger_of_floor_and_confidence() {
         let p = 100 * PRICE_ONE;
         // floor 1bp, no confidence
-        assert_eq!(spread_frac(p, 0, 1, 10_000).unwrap(), FRAC_PER_BPS);
+        assert_eq!(spread_frac(p, 0, FRAC_PER_BPS, 10_000).unwrap(), FRAC_PER_BPS);
         // conf = 0.02 on 100 = 2bp at 1.0x multiplier
         let conf = PRICE_ONE / 50;
-        assert_eq!(spread_frac(p, conf, 1, 10_000).unwrap(), 2 * FRAC_PER_BPS);
+        assert_eq!(spread_frac(p, conf, FRAC_PER_BPS, 10_000).unwrap(), 2 * FRAC_PER_BPS);
         // 0.5x multiplier gives 1bp, equal to the floor
-        assert_eq!(spread_frac(p, conf, 1, 5_000).unwrap(), FRAC_PER_BPS);
+        assert_eq!(spread_frac(p, conf, FRAC_PER_BPS, 5_000).unwrap(), FRAC_PER_BPS);
+        // sub-bp floor (0.5bp) wins over a tiny confidence
+        assert_eq!(spread_frac(p, 1, FRAC_PER_BPS / 2, 10_000).unwrap(), FRAC_PER_BPS / 2);
     }
 
     #[test]

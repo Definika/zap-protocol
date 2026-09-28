@@ -1,0 +1,64 @@
+{
+  "$comment": "Launch markets and risk tiers. Market index = position in `markets` (fixed once listed on-chain). Display fields come from the design; params follow the agreed 'Competitive' fee schedule. Fractions: bps = 1e-4; minSpreadFrac uses FRAC_ONE = 1e12 (1e8 = 1bp).",
+  "tiers": {
+    "A": {
+      "maxLeverage": 100,
+      "mmrBps": 50,
+      "openFeeBps": 4,
+      "closeFeeBps": 4,
+      "minSpreadFrac": 50000000,
+      "confMultBps": 10000,
+      "maxConfBps": 50,
+      "impactCapBps": 50,
+      "impactDepthUsd": 500000000,
+      "oiCapLongBps": 1500,
+      "oiCapShortBps": 1500,
+      "maxPositionUsd": 250000
+    },
+    "B": {
+      "maxLeverage": 50,
+      "mmrBps": 100,
+      "openFeeBps": 5,
+      "closeFeeBps": 5,
+      "minSpreadFrac": 100000000,
+      "confMultBps": 10000,
+      "maxConfBps": 50,
+      "impactCapBps": 50,
+      "impactDepthUsd": 125000000,
+      "oiCapLongBps": 800,
+      "oiCapShortBps": 800,
+      "maxPositionUsd": 100000
+    },
+    "C": {
+      "maxLeverage": 20,
+      "mmrBps": 250,
+      "openFeeBps": 7,
+      "closeFeeBps": 7,
+      "minSpreadFrac": 200000000,
+      "confMultBps": 10000,
+      "maxConfBps": 100,
+      "impactCapBps": 50,
+      "impactDepthUsd": 10000000,
+      "oiCapLongBps": 400,
+      "oiCapShortBps": 400,
+      "maxPositionUsd": 25000
+    }
+  },
+  "markets": [
+    { "symbol": "BTC-USD", "base": "BTC", "name": "Bitcoin", "category": "Majors", "color": "#F7931A", "priceDecimals": 1, "sizeDecimals": 5, "pythProFeedId": 1, "tier": "A" },
+    { "symbol": "ETH-USD", "base": "ETH", "name": "Ethereum", "category": "Majors", "color": "#8C93B8", "priceDecimals": 2, "sizeDecimals": 4, "pythProFeedId": 2, "tier": "A" },
+    { "symbol": "XRP-USD", "base": "XRP", "name": "XRP", "category": "Majors", "color": "#9AA4B2", "priceDecimals": 4, "sizeDecimals": 1, "pythProFeedId": 14, "tier": "B" },
+    { "symbol": "BNB-USD", "base": "BNB", "name": "BNB", "category": "Majors", "color": "#F3BA2F", "priceDecimals": 2, "sizeDecimals": 3, "pythProFeedId": 15, "tier": "B" },
+    { "symbol": "SOL-USD", "base": "SOL", "name": "Solana", "category": "Majors", "color": "#A77BFF", "priceDecimals": 3, "sizeDecimals": 3, "pythProFeedId": 6, "tier": "B" },
+    { "symbol": "DOGE-USD", "base": "DOGE", "name": "Dogecoin", "category": "Memes", "color": "#C2A633", "priceDecimals": 5, "sizeDecimals": 0, "pythProFeedId": 13, "tier": "B" },
+    { "symbol": "HYPE-USD", "base": "HYPE", "name": "Hyperliquid", "category": "DeFi", "color": "#5FE3C4", "priceDecimals": 3, "sizeDecimals": 2, "pythProFeedId": 110, "tier": "C" },
+    { "symbol": "LINK-USD", "base": "LINK", "name": "Chainlink", "category": "DeFi", "color": "#2A5ADA", "priceDecimals": 3, "sizeDecimals": 2, "pythProFeedId": 19, "tier": "B" },
+    { "symbol": "AVAX-USD", "base": "AVAX", "name": "Avalanche", "category": "Layer 1", "color": "#E84142", "priceDecimals": 3, "sizeDecimals": 2, "pythProFeedId": 18, "tier": "B" },
+    { "symbol": "SUI-USD", "base": "SUI", "name": "Sui", "category": "Layer 1", "color": "#4DA2FF", "priceDecimals": 4, "sizeDecimals": 1, "pythProFeedId": 11, "tier": "B" },
+    { "symbol": "JUP-USD", "base": "JUP", "name": "Jupiter", "category": "Solana ecosystem", "color": "#B7E36F", "priceDecimals": 5, "sizeDecimals": 1, "pythProFeedId": 92, "tier": "C" },
+    { "symbol": "PENGU-USD", "base": "PENGU", "name": "Pudgy Penguins", "category": "Memes", "color": "#86B7FF", "priceDecimals": 6, "sizeDecimals": 0, "pythProFeedId": 97, "tier": "C" },
+    { "symbol": "PUMP-USD", "base": "PUMP", "name": "Pump.fun", "category": "Solana ecosystem", "color": "#7CF29A", "priceDecimals": 7, "sizeDecimals": 0, "pythProFeedId": 1578, "tier": "C" },
+    { "symbol": "PYTH-USD", "base": "PYTH", "name": "Pyth Network", "category": "Solana ecosystem", "color": "#9A7BD8", "priceDecimals": 5, "sizeDecimals": 1, "pythProFeedId": 3, "tier": "C" },
+    { "symbol": "JTO-USD", "base": "JTO", "name": "Jito", "category": "Solana ecosystem", "color": "#7EE2B8", "priceDecimals": 4, "sizeDecimals": 1, "pythProFeedId": 91, "tier": "C" }
+  ]
+}

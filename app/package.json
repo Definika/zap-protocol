@@ -1,0 +1,27 @@
+{
+  "name": "@zap-protocol/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZAP web app",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p .",
+    "design:extract": "node tools/extract-design.ts",
+    "design:convert": "node tools/convert-template.ts"
+  },
+  "dependencies": {
+    "@zap-protocol/sdk": "*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "htmlparser2": "^12.0.0",
+    "vite": "^8.3.1"
+  }
+}
