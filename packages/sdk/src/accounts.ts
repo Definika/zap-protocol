@@ -265,3 +265,10 @@ export function decodeConfig(data: Uint8Array): Config {
 
 export const openPositions = (a: TradingAccount) => a.positions.filter((p) => p.status === SlotStatus.Open);
 export const openOrders = (a: TradingAccount) => a.orders.filter((o) => o.status === SlotStatus.Open);
+
+/** Full on-chain account sizes (discriminator included), e.g. for getProgramAccounts dataSize filters. */
+export const ACCOUNT_SIZE = {
+  Pool: DISCRIMINATOR_LEN + layout.Pool.size,
+  Market: DISCRIMINATOR_LEN + layout.Market.size,
+  TradingAccount: DISCRIMINATOR_LEN + layout.TradingAccount.size,
+} as const;

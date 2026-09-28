@@ -11,9 +11,18 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@zap-protocol/sdk": "*"
+    "@electric-sql/pglite": "^0.5.8",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/websocket": "^11.3.1",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
+    "@zap-protocol/sdk": "*",
+    "fastify": "^5.12.5",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^7.4.7",
     "tsx": "^4.23.15"
   }
 }
