@@ -60,6 +60,7 @@ fn long_round_trip_with_profit() {
     let msg = env.price_msg(BTC_FEED, 100_000.0, t);
     let r = run(env.open_ixs(&alice.pubkey(), &alice.pubkey(), BTC, &msg, LONG, size, 100 * USD, 0), &mut env, &alice).unwrap();
     assert!(r.compute_units_consumed < 200_000, "open used {} CU", r.compute_units_consumed);
+    eprintln!("CU open: {}", r.compute_units_consumed);
 
     let entry = expected_fill(px(100_000.0), 0, size, true);
     let units = price::units_for(size, entry, true).unwrap();
@@ -76,6 +77,7 @@ fn long_round_trip_with_profit() {
     let msg = env.price_msg(BTC_FEED, 101_000.0, t + 1);
     let r = run(env.close_ixs(&alice.pubkey(), &alice.pubkey(), BTC, &msg, LONG, 1, u64::MAX, 0), &mut env, &alice).unwrap();
     assert!(r.compute_units_consumed < 200_000, "close used {} CU", r.compute_units_consumed);
+    eprintln!("CU close: {}", r.compute_units_consumed);
 
     let exit = expected_fill(px(101_000.0), size as i128, size, false);
     let pnl = pm::pnl(Side::Long, size, units, exit).unwrap();
