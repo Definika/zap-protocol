@@ -1,4 +1,4 @@
-// ZAP engine: oracle stream, state mirror, relayer, faucet, indexer, keeper and API in one service.
+// ZAP engine: oracle stream, state mirror, relayer, faucet, indexer, keeper, snapshots and API in one service.
 // Roles can be split across processes with ENGINE_ROLES.
 
 import { Connection } from '@solana/web3.js';
@@ -6,6 +6,8 @@ import { config } from './config';
 import { openDb } from './db';
 import { OracleHub } from './oracle/hub';
 import { startDevOracle, type DevOracle } from './oracle/dev';
+import { startPythOracle } from './oracle/pyth';
+import { Auth } from './auth';
 import { Mirror } from './chain/mirror';
 import { Sender } from './chain/send';
 import { Relayer } from './relayer';
@@ -14,6 +16,7 @@ import { Candles } from './candles';
 import { Indexer } from './indexer';
 import { startApi } from './api';
 import { Keeper } from './keeper';
+import { Snapshots } from './snapshots';
 import { logger } from './log';
 
 const log = logger('main');
@@ -28,7 +31,7 @@ async function main() {
   let devOracle: DevOracle | undefined;
   if (has('oracle')) {
     if (config.oracleMode === 'dev') devOracle = await startDevOracle(hub, config.keys.oracle());
-    else throw new Error('ORACLE_MODE=pyth is not wired yet');
+    else await startPythOracle(hub, config.pythProToken, config.pythProUrls);
   }
 
   const mirror = new Mirror(connection);
@@ -47,11 +50,17 @@ async function main() {
   const keeper = has('keeper') ? new Keeper(mirror, hub, sender, config.keys.keeper()) : undefined;
   await keeper?.start();
 
-  if (has('api')) await startApi({ db, hub, mirror, candles, indexer, relayer, faucet, devOracle });
+  // The API serves the live vault view; only the `snapshots` role records history.
+  const snapshots = new Snapshots(db, mirror, hub);
+  if (has('api') || has('snapshots')) await snapshots.start(has('snapshots'));
+
+  const auth = new Auth(config.privy.appId, config.privy.appSecret);
+  if (has('api')) await startApi({ db, connection, hub, mirror, candles, snapshots, indexer, relayer, faucet, devOracle, auth });
 
   const shutdown = async () => {
     log.info('shutting down');
     keeper?.stop();
+    snapshots.stop();
     await indexer?.stop();
     await mirror.stop();
     await db.close();

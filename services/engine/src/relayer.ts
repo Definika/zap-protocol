@@ -78,7 +78,7 @@ export class Relayer {
   ) {}
 
   /** Validates, co-signs and sends a base64 transaction signed by the user (owner or session key). */
-  async relay(txBase64: string, ctx: { ip: string; userId?: string }): Promise<RelayResult> {
+  async relay(txBase64: string, ctx: { ip: string; userId?: string; signerAllowed?: (signer: PublicKey) => boolean }): Promise<RelayResult> {
     const raw = Buffer.from(txBase64, 'base64');
     if (raw.length > 1232) throw new RelayError('too_large', 'transaction exceeds 1232 bytes');
     let tx: VersionedTransaction;
@@ -153,6 +153,7 @@ export class Relayer {
       const signer = msg.staticAccountKeys[i]!;
       const sig = tx.signatures[i]!;
       if (sig.every((b) => b === 0) || !verifyEd25519(signer, bytes, sig)) throw new RelayError('signature', `missing or invalid signature for ${signer.toBase58()}`);
+      if (ctx.signerAllowed && !ctx.signerAllowed(signer)) throw new RelayError('not_yours', `${signer.toBase58()} is not one of your wallets or trading keys`);
     }
 
     const signerKey = msg.staticAccountKeys[1]?.toBase58() ?? 'none';

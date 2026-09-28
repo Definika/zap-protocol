@@ -67,6 +67,17 @@ export class Candles {
     }
   }
 
+  /** Per market, the first one-minute candle at or after `fromSecs` (the one still forming if none is stored): time and open. */
+  async firstSince(fromSecs: number): Promise<Map<number, { t: number; o: bigint }>> {
+    const rows = await this.db.query<{ market: number; t: string; o: string }>(
+      'select distinct on (market) market, t::text, o::text from candles where tf = 60 and t >= $1 order by market, t',
+      [Math.floor(fromSecs / MINUTE) * MINUTE],
+    );
+    const out = new Map(rows.map((r) => [Number(r.market), { t: Number(r.t), o: BigInt(r.o) }]));
+    for (const [market, c] of this.open) if (!out.has(market)) out.set(market, { t: c.t, o: c.o });
+    return out;
+  }
+
   /** Candles of `tfSecs` (a multiple of 60) from `from` (unix seconds), including the one still forming. */
   async query(market: number, tfSecs: number, from: number, limit = 500) {
     const rows = await this.db.query<{ t: string; o: string; h: string; l: string; c: string; v: string }>(

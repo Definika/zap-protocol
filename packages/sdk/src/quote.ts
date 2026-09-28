@@ -1,5 +1,5 @@
 // Off-chain views of what the program will compute: accrued indices, owed fees, equity, liquidation price, trigger
-// conditions and expected fills. Built on the bit-exact math port, so keepers and the app agree with the program.
+// conditions, expected fills and vault NAV. Built on the bit-exact math port, so keepers and the app agree with the program.
 
 import type { ConfigParams, Market, Pool, Position } from './accounts';
 import { OrderKind, Side } from './constants';
@@ -13,15 +13,18 @@ export interface Indices {
   fundingShort: bigint;
 }
 
+/** The pool borrow index accrued to `nowSecs` at the rate implied by current utilization. */
+function accruedBorrowIndex(pool: Pool, params: ConfigParams, nowSecs: bigint): bigint {
+  const dt = nowSecs - pool.borrowLastTs;
+  if (dt <= 0n) return pool.borrowIndex;
+  const util = m.utilizationBps(pool.reserved, pool.assets);
+  const apr = m.borrowAprBps(util, BigInt(params.borrowKinkUtilBps), BigInt(params.borrowKinkAprBps), BigInt(params.borrowMaxAprBps));
+  return m.accrueBorrow(pool.borrowIndex, m.borrowRatePerSec(apr), dt);
+}
+
 /** Borrow and funding indices accrued to `nowSecs`, exactly as the program would before acting. */
 export function accruedIndices(pool: Pool, market: Market, params: ConfigParams, nowSecs: bigint): Indices {
-  let borrow = pool.borrowIndex;
-  const dtB = nowSecs - pool.borrowLastTs;
-  if (dtB > 0n) {
-    const util = m.utilizationBps(pool.reserved, pool.assets);
-    const apr = m.borrowAprBps(util, BigInt(params.borrowKinkUtilBps), BigInt(params.borrowKinkAprBps), BigInt(params.borrowMaxAprBps));
-    borrow = m.accrueBorrow(borrow, m.borrowRatePerSec(apr), dtB);
-  }
+  const borrow = accruedBorrowIndex(pool, params, nowSecs);
   let fundingLong = market.fundingIndexLong;
   let fundingShort = market.fundingIndexShort;
   const dtF = nowSecs - market.lastAccrualTs;
@@ -108,6 +111,34 @@ export function expectedFill(market: Market, mid12: bigint, conf12: bigint, size
   const skew = market.oiLong - market.oiShort;
   const impact = m.impactFrac(skew, isBuy ? size : -size, p.impactDepthUsd, BigInt(p.impactCapBps));
   return { price: m.fillPrice(mid12, spread, impact, isBuy), spread, impact };
+}
+
+/**
+ * Vault NAV (USD, 6 decimals) at `nowSecs`, as LP deposits and withdrawals compute it (`logic/nav.rs`): realized assets,
+ * plus borrow fees owed net of the protocol share, plus each market's funding owed minus traders' unrealized PnL, with
+ * every index accrued to `nowSecs` first. Needs every listed market; `prices12` (by market index) only for markets with
+ * open interest.
+ */
+export function vaultNav(pool: Pool, markets: Market[], prices12: Map<number, bigint>, params: ConfigParams, nowSecs: bigint): bigint {
+  if (markets.length !== pool.numMarkets || new Set(markets.map((x) => x.index)).size !== markets.length) {
+    throw new Error(`vaultNav: expected all ${pool.numMarkets} markets, got ${markets.length}`);
+  }
+  // pending borrow, rounded against the vault, net of the protocol share (rounded up)
+  const owed = m.aggregateOwed(accruedBorrowIndex(pool, params, nowSecs), pool.reserved, pool.sumSizeBorrowEntry);
+  const gross = owed > 0n ? owed : 0n;
+  let nav = pool.assets + gross - m.bpsOf(gross, BigInt(params.protocolFeeShareBps), 'Up');
+  // each market with open interest: funding its traders owe minus their unrealized PnL
+  for (const market of markets) {
+    if (market.oiLong === 0n && market.oiShort === 0n) continue;
+    const price = prices12.get(market.index);
+    if (price === undefined) throw new Error(`vaultNav: no price for market ${market.index}`);
+    const idx = accruedIndices(pool, market, params, nowSecs);
+    const funding =
+      m.aggregateOwed(idx.fundingLong, market.oiLong, market.sumSfLong) + m.aggregateOwed(idx.fundingShort, market.oiShort, market.sumSfShort);
+    const upnl = m.sideUpnl('Long', market.oiLong, market.unitsLong, price) + m.sideUpnl('Short', market.oiShort, market.unitsShort, price);
+    nav += funding - upnl;
+  }
+  return nav > 0n ? nav : 0n;
 }
 
 /** A tick's mantissa and exponent as a 12-decimal price. */

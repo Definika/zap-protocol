@@ -51,7 +51,9 @@ export const config = {
   /** `dev`: our own signer with a random walk (local and pre-key); `pyth`: Pyth Pro stream with PYTH_PRO_TOKEN. */
   oracleMode: env('ORACLE_MODE', 'dev') as 'dev' | 'pyth',
   pythProToken: process.env.PYTH_PRO_TOKEN ?? '',
-  roles: new Set(env('ENGINE_ROLES', 'oracle,api,relayer,faucet,keeper,indexer').split(',')),
+  /** Optional Pyth Pro stream endpoints (defaults to Pyth's redundant pool). */
+  pythProUrls: (process.env.PYTH_PRO_URLS ?? '').split(',').filter(Boolean),
+  roles: new Set(env('ENGINE_ROLES', 'oracle,api,relayer,faucet,keeper,indexer,snapshots').split(',')),
   keys: {
     relayer: () => keypair('RELAYER_SECRET', 'relayer'),
     keeper: () => keypair('KEEPER_SECRET', 'keeper'),

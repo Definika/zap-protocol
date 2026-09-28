@@ -4,7 +4,7 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, type Connection } from '@solana/web3.js';
 import { MARKETS, PROGRAM_ID, openOrders, openPositions } from '@zap-protocol/sdk';
 import type WebSocket from 'ws';
 import { config } from './config';
@@ -13,20 +13,27 @@ import type { Candles } from './candles';
 import type { Mirror } from './chain/mirror';
 import type { OracleHub } from './oracle/hub';
 import type { Indexer } from './indexer';
+import { rangeSecs, type Snapshots } from './snapshots';
+import { LEADERBOARD_METRICS, LEADERBOARD_WINDOWS, MIN_VOLUME_FOR_ROI, Stats, type LeaderboardMetric, type LeaderboardWindow } from './stats';
 import { Faucet, FaucetError } from './faucet';
 import { RelayError, type Relayer } from './relayer';
+import { AuthError, type Auth, type AuthUser } from './auth';
 import { logger } from './log';
 
 const log = logger('api');
 
 export interface ApiDeps {
   db: Db;
+  connection: Connection;
   hub: OracleHub;
   mirror: Mirror;
   candles: Candles;
+  snapshots: Snapshots;
   indexer?: Indexer;
   relayer?: Relayer;
   faucet?: Faucet;
+  /** Privy session checks (disabled locally, without a Privy app). */
+  auth?: Auth;
   devOracle?: { shock(feedId: number, pct: number): boolean };
 }
 
@@ -45,18 +52,39 @@ function parseKey(s: string, reply: FastifyReply): PublicKey | null {
   }
 }
 
+/** Seconds of history for `?range=`, or null after answering 400. */
+function parseRange(range: string | undefined, reply: FastifyReply): number | null {
+  const secs = rangeSecs(range);
+  if (secs === undefined) void reply.code(400).send({ error: 'range must be 7D, 30D or All' });
+  return secs ?? null;
+}
+
+/** `?window=&metric=` for the leaderboard (default all-time PnL), or null after answering 400. */
+function parseBoard(q: { window?: string; metric?: string }, reply: FastifyReply) {
+  const window = (q.window ?? 'all').toLowerCase();
+  const metric = (q.metric ?? 'pnl').toLowerCase();
+  if (!Object.hasOwn(LEADERBOARD_WINDOWS, window) || !(LEADERBOARD_METRICS as readonly string[]).includes(metric)) {
+    void reply.code(400).send({ error: 'window must be 24h, 7d, 30d or all; metric pnl, volume or roi' });
+    return null;
+  }
+  return { window: window as LeaderboardWindow, metric: metric as LeaderboardMetric };
+}
+
 export async function startApi(deps: ApiDeps) {
-  const { db, hub, mirror, candles } = deps;
+  const { db, hub, mirror, candles, snapshots } = deps;
   const app = Fastify({ bodyLimit: 16 * 1024, trustProxy: true });
   app.setReplySerializer((payload) => serialize(payload));
   await app.register(cors, { origin: config.corsOrigins });
   await app.register(websocket);
 
+  const stats = new Stats(db, mirror, candles);
+  await stats.start();
+
   const marketView = (index: number) => {
     const info = MARKETS[index];
     const m = mirror.markets.get(index);
     const tick = info ? hub.latest?.ticks.get(info.pythProFeedId) : undefined;
-    return { ...info, onchain: m ?? null, price: tick ?? null };
+    return { ...info, onchain: m ?? null, price: tick ?? null, stats: stats.market(index) };
   };
 
   app.get('/v1/health', async () => ({
@@ -139,32 +167,67 @@ export async function startApi(deps: ApiDeps) {
     ),
   );
 
-  app.get('/v1/vault', async () => ({
-    pool: mirror.pool,
-    history: await db.query('select * from vault_snapshots order by ts desc limit 720'),
-  }));
-
-  app.get<{ Querystring: { metric?: string; since?: string } }>('/v1/leaderboard', async (req) => {
-    const since = Number(req.query.since ?? 0);
-    const order = req.query.metric === 'volume' ? 'volume' : 'pnl';
-    return db.query(
-      `select owner, sum(pnl)::bigint as pnl, sum(abs(size_delta))::bigint as volume, count(*) as trades
-       from fills where ts >= $1 group by owner order by ${order} desc limit 100`,
-      [since],
-    );
+  // Equity (balance + order escrow + positions marked to the oracle, net of owed fees), from 5-minute snapshots.
+  app.get<{ Params: { owner: string }; Querystring: { range?: string } }>('/v1/accounts/:owner/equity', async (req, reply) => {
+    const owner = parseKey(req.params.owner, reply);
+    if (!owner) return;
+    const secs = parseRange(req.query.range, reply);
+    if (secs === null) return;
+    return snapshots.equityHistory(owner.toBase58(), secs);
   });
 
-  // Gasless relay and faucet
+  app.get('/v1/vault', async (_, reply) => {
+    if (!snapshots.view) return reply.code(503).send({ error: 'vault not priced yet' });
+    return { pool: mirror.pool, ...snapshots.view };
+  });
+
+  app.get<{ Querystring: { range?: string } }>('/v1/vault/history', async (req, reply) => {
+    const secs = parseRange(req.query.range, reply);
+    if (secs === null) return;
+    return snapshots.vaultHistory(secs);
+  });
+
+  app.get<{ Querystring: { days?: string } }>('/v1/vault/earnings', async (req) => {
+    const n = Math.floor(Number(req.query.days ?? 30));
+    return stats.earnings(Number.isFinite(n) ? Math.min(90, Math.max(1, n)) : 30);
+  });
+
+  app.get<{ Querystring: { window?: string; metric?: string } }>('/v1/leaderboard', async (req, reply) => {
+    const q = parseBoard(req.query, reply);
+    if (!q) return;
+    const board = await stats.leaderboard(q.window, q.metric);
+    return { rows: board.rows.slice(0, 100), minVolumeForRoi: MIN_VOLUME_FOR_ROI, updatedAt: board.updatedAt };
+  });
+
+  app.get<{ Params: { owner: string }; Querystring: { window?: string; metric?: string } }>('/v1/leaderboard/:owner', async (req, reply) => {
+    const q = parseBoard(req.query, reply);
+    if (!q) return;
+    const board = await stats.leaderboard(q.window, q.metric);
+    return { row: board.rows.find((r) => r.owner === req.params.owner) ?? null };
+  });
+
+  // Gasless relay and faucet. With a Privy app configured, both need the user's session, and a transaction may only be
+  // signed by the user's own wallets or the session keys of their trading accounts.
+  const who = async (header: string | undefined): Promise<AuthUser | undefined> => (deps.auth?.enabled ? deps.auth.user(header) : undefined);
+  const ownedBy = (user: AuthUser) => (signer: PublicKey) => {
+    const k = signer.toBase58();
+    if (user.wallets.has(k)) return true;
+    for (const w of user.wallets) if (mirror.accounts.get(w)?.account.sessionKey.toBase58() === k) return true;
+    return false;
+  };
+
   app.post<{ Body: { tx?: string } }>('/v1/relay', async (req, reply) => {
     if (!deps.relayer) return reply.code(503).send({ error: 'relayer disabled' });
     if (!req.body?.tx) return reply.code(400).send({ error: 'missing tx' });
     try {
-      const r = await deps.relayer.relay(req.body.tx, { ip: req.ip });
+      const user = await who(req.headers.authorization);
+      const r = await deps.relayer.relay(req.body.tx, { ip: req.ip, userId: user?.id, signerAllowed: user && ownedBy(user) });
       // refresh the touched accounts once the transaction lands, so WebSocket clients see it quickly
       setTimeout(() => void mirror.refresh(r.accounts).catch(() => {}), 1_200);
       return { signature: r.signature };
     } catch (e) {
       if (e instanceof RelayError) return reply.code(400).send({ error: e.message, code: e.code, logs: e.logs });
+      if (e instanceof AuthError) return reply.code(401).send({ error: e.message, code: 'auth' });
       log.error('relay failed', e);
       return reply.code(500).send({ error: 'relay failed' });
     }
@@ -182,9 +245,12 @@ export async function startApi(deps: ApiDeps) {
     const wallet = parseKey(req.body?.wallet ?? '', reply);
     if (!wallet) return;
     try {
-      return await deps.faucet.claim(wallet, wallet.toBase58());
+      const user = await who(req.headers.authorization);
+      if (user && !user.wallets.has(wallet.toBase58())) return reply.code(403).send({ error: 'that wallet is not linked to your account' });
+      return await deps.faucet.claim(wallet, user?.id ?? wallet.toBase58());
     } catch (e) {
       if (e instanceof FaucetError) return reply.code(429).send({ error: e.message, nextClaimAt: e.nextClaimAt });
+      if (e instanceof AuthError) return reply.code(401).send({ error: e.message, code: 'auth' });
       log.error('faucet failed', e);
       return reply.code(500).send({ error: 'faucet failed' });
     }
@@ -199,7 +265,7 @@ export async function startApi(deps: ApiDeps) {
     });
   }
 
-  // WebSocket: { op: 'sub' | 'unsub', ch: 'prices' | 'markets' | 'status' | `account:${owner}` | `trades:${market}` }
+  // WebSocket: { op: 'sub' | 'unsub', ch: 'prices' | 'markets' | 'pool' | 'status' | 'vault' | `account:${owner}` | `trades:${market}` }
   const clients = new Map<WebSocket, Set<string>>();
   const send = (ws: WebSocket, ch: string, data: unknown) => {
     if (ws.readyState === ws.OPEN) ws.send(serialize({ ch, data }));
@@ -220,7 +286,7 @@ export async function startApi(deps: ApiDeps) {
           if (m.ch.startsWith('account:')) {
             const e = mirror.accounts.get(m.ch.slice(8));
             send(socket, m.ch, e ? { ...e.account, positions: openPositions(e.account), orders: openOrders(e.account) } : null);
-          }
+          } else if (m.ch === 'vault' && snapshots.view) send(socket, m.ch, snapshots.view);
         } else if (m.op === 'unsub') subs.delete(m.ch);
       } catch {
         // ignore malformed messages
@@ -245,7 +311,22 @@ export async function startApi(deps: ApiDeps) {
   deps.indexer?.on((e) => {
     if (e.name === 'trade') broadcast(`trades:${String(e.data.market)}`, { ...e.data, signature: e.signature });
   });
-  setInterval(() => broadcast('status', { oracle: { mode: hub.mode, ageMs: hub.ageMs() } }), 2_000);
+  // The vault view is recomputed every 5s.
+  snapshots.on((v) => broadcast('vault', v));
+  // Oracle health and the latest confirmed slot every 2s.
+  let slot: number | null = null;
+  const pollSlot = async () => {
+    try {
+      slot = await deps.connection.getSlot('confirmed');
+    } catch {
+      // keep the last one
+    }
+  };
+  await pollSlot();
+  setInterval(() => {
+    void pollSlot();
+    broadcast('status', { oracle: { mode: hub.mode, ageMs: hub.ageMs() }, slot });
+  }, 2_000);
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
   log.info(`listening on :${config.port}`);
