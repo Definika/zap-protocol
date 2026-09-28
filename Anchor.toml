@@ -1,0 +1,21 @@
+skip_local_validator = true
+
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+zap = "H7YEstzQnFYuAkSXgPLe1YrL5WoUvgvo4cyndrQsgcwi"
+
+[programs.devnet]
+zap = "H7YEstzQnFYuAkSXgPLe1YrL5WoUvgvo4cyndrQsgcwi"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/zap/admin.json"
+
+[scripts]
+test = "cargo test"

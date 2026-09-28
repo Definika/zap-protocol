@@ -1,0 +1,27 @@
+{
+  "name": "zap-protocol",
+  "private": true,
+  "description": "ZAP Protocol: perpetual futures on Solana with CEX-grade UX",
+  "type": "module",
+  "workspaces": [
+    "packages/sdk",
+    "services/engine"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:program": "anchor build",
+    "test:math": "cargo test -p zap-math",
+    "test:program": "anchor build && cargo test -p zap",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:app": "npm run dev -w app",
+    "dev:engine": "npm run dev -w services/engine"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

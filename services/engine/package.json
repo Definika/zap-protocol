@@ -1,0 +1,19 @@
+{
+  "name": "@zap-protocol/engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZAP engine: oracle stream, keeper, indexer, API, gasless relayer, faucet and alerts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@zap-protocol/sdk": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

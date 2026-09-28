@@ -1,0 +1,16 @@
+[package]
+name = "zap-math"
+version = "0.1.0"
+description = "Fixed-point math for ZAP Protocol: fills, fees, funding, borrow, PnL, liquidation and vault NAV"
+edition.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+std = []
+
+[dependencies]
+uint = { version = "0.10", default-features = false }
+
+[dev-dependencies]
+proptest = "1"
