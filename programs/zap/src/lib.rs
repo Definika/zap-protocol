@@ -77,6 +77,61 @@ pub mod zap {
         instructions::account::close_account(ctx)
     }
 
+    // Trading. `price_msg` must stay the first argument: the ed25519 check expects it at a fixed offset.
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_position(
+        ctx: Context<TradeWithPrice>,
+        price_msg: Vec<u8>,
+        side: u8,
+        size: u64,
+        collateral: u64,
+        acceptable_price: u64,
+        tp_price: u64,
+        sl_price: u64,
+    ) -> Result<()> {
+        instructions::trade::open_position(ctx, price_msg, side, size, collateral, acceptable_price, tp_price, sl_price)
+    }
+
+    pub fn close_position(
+        ctx: Context<TradeWithPrice>,
+        price_msg: Vec<u8>,
+        side: u8,
+        position_id: u64,
+        size: u64,
+        acceptable_price: u64,
+    ) -> Result<()> {
+        instructions::trade::close_position(ctx, price_msg, side, position_id, size, acceptable_price)
+    }
+
+    pub fn add_collateral(ctx: Context<TradeNoPrice>, side: u8, position_id: u64, amount: u64) -> Result<()> {
+        instructions::trade::add_collateral(ctx, side, position_id, amount)
+    }
+
+    pub fn remove_collateral(
+        ctx: Context<TradeWithPrice>,
+        price_msg: Vec<u8>,
+        side: u8,
+        position_id: u64,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::trade::remove_collateral(ctx, price_msg, side, position_id, amount)
+    }
+
+    pub fn set_tpsl(ctx: Context<TradeNoPrice>, side: u8, position_id: u64, tp_price: u64, sl_price: u64) -> Result<()> {
+        instructions::trade::set_tpsl(ctx, side, position_id, tp_price, sl_price)
+    }
+
+    // LP vault (deposits come from, and withdrawals go to, the trading balance)
+
+    pub fn lp_deposit<'info>(ctx: Context<'info, Lp<'info>>, price_msg: Vec<u8>, amount: u64) -> Result<()> {
+        instructions::lp::lp_deposit(ctx, price_msg, amount)
+    }
+
+    pub fn lp_withdraw<'info>(ctx: Context<'info, Lp<'info>>, price_msg: Vec<u8>, shares: u64) -> Result<()> {
+        instructions::lp::lp_withdraw(ctx, price_msg, shares)
+    }
+
     // Keeper
 
     /// `price_msg` must stay the first argument: the ed25519 check expects it at a fixed offset.

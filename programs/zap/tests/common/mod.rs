@@ -436,3 +436,201 @@ pub fn assert_failed(res: TxResult) -> String {
         Err(e) => format!("{:?}", e.err),
     }
 }
+
+// Trading helpers
+
+pub const LONG: u8 = zap::constants::side::LONG;
+pub const SHORT: u8 = zap::constants::side::SHORT;
+/// 12-decimal price from dollars.
+pub fn px(usd: f64) -> u64 {
+    (usd * 1e12).round() as u64
+}
+
+impl Env {
+    fn priced_metas(&self, signer: &Pubkey, market: u16, owner: &Pubkey) -> Vec<AccountMeta> {
+        zap::accounts::TradeWithPrice {
+            signer: *signer,
+            config: config_pda(),
+            pool: pool_pda(),
+            market: market_pda(market),
+            account: account_pda(owner),
+            pyth_storage: Pubkey::default(),
+            instructions: solana_sdk_ids::sysvar::instructions::ID,
+        }
+        .to_account_metas(None)
+    }
+
+    fn unpriced_metas(&self, signer: &Pubkey, market: u16, owner: &Pubkey) -> Vec<AccountMeta> {
+        zap::accounts::TradeNoPrice {
+            signer: *signer,
+            config: config_pda(),
+            pool: pool_pda(),
+            market: market_pda(market),
+            account: account_pda(owner),
+        }
+        .to_account_metas(None)
+    }
+
+    /// Signed price message for one market's feed at time `t` (unix seconds).
+    pub fn price_msg(&self, feed_id: u32, usd: f64, t: i64) -> Vec<u8> {
+        signed_message(&self.oracle, us(t), 3, &[feed(feed_id, usd, us(t))])
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_ixs(
+        &self,
+        signer: &Pubkey,
+        owner: &Pubkey,
+        market: u16,
+        msg: &[u8],
+        side: u8,
+        size: u64,
+        collateral: u64,
+        acceptable: u64,
+    ) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::OpenPosition {
+                price_msg: msg.to_vec(),
+                side,
+                size,
+                collateral,
+                acceptable_price: acceptable,
+                tp_price: 0,
+                sl_price: 0,
+            }
+            .data(),
+            self.priced_metas(signer, market, owner),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn close_ixs(
+        &self,
+        signer: &Pubkey,
+        owner: &Pubkey,
+        market: u16,
+        msg: &[u8],
+        side: u8,
+        position_id: u64,
+        size: u64,
+        acceptable: u64,
+    ) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::ClosePosition { price_msg: msg.to_vec(), side, position_id, size, acceptable_price: acceptable }
+                .data(),
+            self.priced_metas(signer, market, owner),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    pub fn remove_collateral_ixs(&self, owner: &Keypair, market: u16, msg: &[u8], side: u8, id: u64, amount: u64) -> Vec<Instruction> {
+        let ix = Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::RemoveCollateral { price_msg: msg.to_vec(), side, position_id: id, amount }.data(),
+            self.priced_metas(&owner.pubkey(), market, &owner.pubkey()),
+        );
+        vec![ed25519_ix(msg, 1), ix]
+    }
+
+    pub fn add_collateral_ix(&self, owner: &Keypair, market: u16, side: u8, id: u64, amount: u64) -> Instruction {
+        Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::AddCollateral { side, position_id: id, amount }.data(),
+            self.unpriced_metas(&owner.pubkey(), market, &owner.pubkey()),
+        )
+    }
+
+    pub fn set_tpsl_ix(&self, owner: &Keypair, market: u16, side: u8, id: u64, tp: u64, sl: u64) -> Instruction {
+        Instruction::new_with_bytes(
+            zap::ID,
+            &zap::instruction::SetTpsl { side, position_id: id, tp_price: tp, sl_price: sl }.data(),
+            self.unpriced_metas(&owner.pubkey(), market, &owner.pubkey()),
+        )
+    }
+
+    /// LP deposit or withdraw pricing every listed market with `feeds`.
+    pub fn lp_ixs(&self, owner: &Pubkey, feeds: &[TestFeed], deposit: bool, amount: u64) -> Vec<Instruction> {
+        let t = feeds.first().map(|f| f.feed_ts_us).unwrap_or(us(self.now()));
+        let msg = signed_message(&self.oracle, t, 3, feeds);
+        let mut metas = zap::accounts::Lp {
+            signer: *owner,
+            config: config_pda(),
+            pool: pool_pda(),
+            account: account_pda(owner),
+            pyth_storage: Pubkey::default(),
+            instructions: solana_sdk_ids::sysvar::instructions::ID,
+        }
+        .to_account_metas(None);
+        for i in 0..self.pool().num_markets {
+            metas.push(AccountMeta::new(market_pda(i), false));
+        }
+        let data = if deposit {
+            zap::instruction::LpDeposit { price_msg: msg.clone(), amount }.data()
+        } else {
+            zap::instruction::LpWithdraw { price_msg: msg.clone(), shares: amount }.data()
+        };
+        vec![ed25519_ix(&msg, 1), Instruction::new_with_bytes(zap::ID, &data, metas)]
+    }
+
+    /// Funds a trader's trading balance: wallet → deposit.
+    pub fn funded_trader(&mut self, amount: u64, session: Option<&Keypair>) -> (Keypair, Pubkey) {
+        let (owner, usdc) = self.trader(amount, session);
+        if amount > 0 {
+            let ix = self.deposit_ix(&owner.pubkey(), &usdc, amount);
+            let relayer = self.relayer.insecure_clone();
+            self.send(&[ix], &relayer, &[&owner]).unwrap();
+        }
+        (owner, usdc)
+    }
+
+    /// Seeds the vault with `amount` from a fresh LP, pricing every market at `prices` (feed, usd).
+    pub fn seed_vault(&mut self, amount: u64, prices: &[(u32, f64)]) -> Keypair {
+        let (lp, _) = self.funded_trader(amount, None);
+        let t = us(self.now());
+        let feeds: Vec<TestFeed> = prices.iter().map(|&(f, p)| feed(f, p, t)).collect();
+        let ixs = self.lp_ixs(&lp.pubkey(), &feeds, true, amount);
+        let relayer = self.relayer.insecure_clone();
+        self.send(&ixs, &relayer, &[&lp]).unwrap();
+        lp
+    }
+
+    /// Checks the custody invariant and that market and pool aggregates equal the sum over positions.
+    pub fn check_invariants(&self, owners: &[Pubkey]) {
+        let pool = self.pool();
+        let mut ledger = u128::from(pool.assets) + u128::from(pool.protocol_fees);
+        let mut reserved = 0u128;
+        let n = pool.num_markets;
+        let mut oi = vec![(0u128, 0u128); n as usize];
+        let mut units = vec![(0u128, 0u128); n as usize];
+        for o in owners {
+            let a = self.trading_account(o);
+            ledger += u128::from(a.balance);
+            for p in a.positions.iter().filter(|p| p.status == zap::constants::slot_status::OPEN) {
+                ledger += u128::from(p.collateral);
+                reserved += u128::from(p.size_usd);
+                let m = p.market_index as usize;
+                if p.side == LONG {
+                    oi[m].0 += u128::from(p.size_usd);
+                    units[m].0 += p.units.get();
+                } else {
+                    oi[m].1 += u128::from(p.size_usd);
+                    units[m].1 += p.units.get();
+                }
+            }
+            for ord in a.orders.iter().filter(|o| o.status == zap::constants::slot_status::OPEN) {
+                ledger += u128::from(ord.collateral_escrow) + u128::from(ord.fee_escrow);
+            }
+        }
+        let custody = u128::from(self.balance_of(&custody_pda()));
+        assert_eq!(custody, ledger, "custody {custody} != ledger {ledger}");
+        assert_eq!(u128::from(pool.reserved), reserved, "pool.reserved");
+        for i in 0..n {
+            let m = self.market(i);
+            assert_eq!((u128::from(m.oi_long), u128::from(m.oi_short)), oi[i as usize], "market {i} open interest");
+            assert_eq!((m.units_long.get(), m.units_short.get()), units[i as usize], "market {i} units");
+        }
+    }
+}
